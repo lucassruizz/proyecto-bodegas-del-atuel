@@ -1,0 +1,11 @@
+
+.env
+.env.*
+!.env.example
+
+.vscode/
+.idea/
+
+*.log
+Thumbs.db
+.DS_Store
