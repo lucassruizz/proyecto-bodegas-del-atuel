@@ -1,0 +1,41 @@
+# Justificación de las decisiones de diseño
+
+## Jerarquía de clientes
+
+Se eligió una tabla CLIENTE con los datos comunes y una tabla para cada tipo: SOCIO_CLUB, DISTRIBUIDOR y EXPORTADOR. Cada subtipo utiliza el mismo idCliente como clave primaria y referencia a CLIENTE.
+
+Esto evita repetir los datos generales y permite guardar por separado los datos específicos. Como desventaja, algunas consultas necesitan combinar varias tablas.
+
+Cada cliente debe pertenecer a un único subtipo. Esta condición forma parte del modelo, aunque las claves del SQL actual no alcanzan para garantizarla.
+
+## Elección de claves
+
+Se utilizan identificadores propios cuando los nombres u otros datos pueden repetirse. LOCALIDAD tiene idLocalidad como clave primaria y conserva el código postal como un dato adicional.
+
+BODEGA y EMPLEADO utilizan el CUIT como clave natural. La tabla parcela utiliza idFinca y numeroParcela, porque el número de parcela puede repetirse en distintas fincas.
+
+Las asociaciones y los detalles se identifican mediante las claves de los registros que vinculan. Por ejemplo, un renglón se identifica por numeroComprobante y codigoVino. Así, cada vino aparece una sola vez en ese comprobante, con su cantidad correspondiente.
+
+## Elección de tipos de datos
+
+Se utiliza NUMERIC para los importes porque permite trabajar con decimales exactos, evitando las aproximaciones de FLOAT.
+
+Las fechas sin hora se guardan con DATE y la fecha y hora de auditoría con TIMESTAMP. Los estados se definen mediante un tipo enumerado con los valores de la consigna.
+
+El CUIT se guarda como texto de once dígitos mediante dom_cuit, porque es un identificador y no una cantidad. Los tipos y tamaños de cada campo se detallan en el diccionario.
+
+## Datos históricos y calculados
+
+El precio unitario del renglón conserva el valor al momento de la venta. Un cambio en el precio actual del vino no debe modificar ventas anteriores. Lo mismo ocurre con el porcentaje de descuento aplicado.
+
+En CLIENTE, descuento es el porcentaje vigente. En renglon_comprobante, es el porcentaje histórico aplicado. En COMPROBANTE, es el importe monetario total descontado.
+
+Se conservan los subtotales y totales pedidos, aunque puedan calcularse a partir de otros datos. También se mantiene el porcentaje en cada renglón. Estas repeticiones se explican en la justificación de normalización.
+
+Los valores calculados deben mantenerse desde la base de datos. El SQL actual define los campos y sus validaciones básicas, pero todavía no realiza esos cálculos automáticamente ni asigna el descuento según el subtipo.
+
+## Acciones referenciales
+
+Todas las claves foráneas utilizan ON DELETE RESTRICT para impedir que se borre un registro mientras existan referencias a él. Se aplica también a las cabeceras y detalles para evitar borrar movimientos completos accidentalmente.
+
+Las referencias al CUIT de BODEGA desde lote, vino e ingresos utilizan ON UPDATE CASCADE para propagar una corrección de ese identificador. Las demás referencias utilizan ON UPDATE RESTRICT, porque sus identificadores se consideran estables.
