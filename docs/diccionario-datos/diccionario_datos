@@ -1,0 +1,572 @@
+# Diccionario de datos — TPI Bodegas del Atuel
+
+## 1. Alcance
+
+Este documento define las tablas, columnas, tipos de datos, claves, nulabilidad y restricciones del sistema de gestión de Bodegas del Atuel. Se basa en el escenario y las reglas de negocio de la consigna, el modelo relacional normalizado y las decisiones de diseño de la etapa 1.
+
+Las definiciones constituyen la especificación para el esquema físico en PostgreSQL 14 o superior. Las reglas que requieren funciones, procedimientos o triggers se documentan aquí; su implementación corresponde a la etapa 2. No se consideran implementadas por el solo hecho de estar descriptas.
+
+## 2. Convenciones y dominios
+
+- **PK:** clave primaria. **FK:** clave foránea. **UNIQUE:** combinación que no puede repetirse. **CHECK:** condición que deben cumplir los valores.
+- La columna **Admite NULL** indica explícitamente la obligatoriedad de cada atributo. Todas las columnas de una PK son obligatorias.
+- Los identificadores internos de tipo `bigint` cuyo nombre comienza con `id` se generan mediante `GENERATED ALWAYS AS IDENTITY`, salvo cuando son claves heredadas, foráneas o el identificador fijo del depósito. Los códigos y números de negocio se asignan al registrar la operación; no se presupone numeración legal o fiscal.
+- Los nombres de tablas y columnas de este documento se utilizan de manera consistente en todas las referencias. Se corrigen `TRANFERENCIA` a `TRANSFERENCIA`, `idCepas` a `idCepa` y `e-mail` a `email`. Los nombres con espacios se sustituyen por guiones bajos.
+- `estado_documento` es un tipo ENUM con los valores `en_confeccion`, `terminado` y `procesado`.
+- `dom_cuit` es un DOMAIN basado en `varchar(11)`, con validación de exactamente once dígitos: `VALUE ~ '^[0-9]{11}$'`. No incluye guiones. La obligatoriedad se declara en cada columna.
+- Los importes se expresan en pesos argentinos, con `numeric(12,2)`. Los porcentajes se expresan en puntos porcentuales: `10.00` representa un 10 %.
+- Las superficies se expresan en hectáreas; el volumen, en mililitros; los kilos cosechados, en kg; la acidez, en g/L; y la temperatura, en °C.
+- Las fechas sin hora usan `date`. La auditoría utiliza `timestamp without time zone` y registra la hora local de Argentina; la sesión de base de datos debe usar `America/Argentina/Buenos_Aires`.
+- Los campos obligatorios de texto deben contener algún carácter distinto de espacios. Las cadenas vacías no sustituyen a NULL.
+- Salvo indicación expresa, no se asignan valores predeterminados a las columnas.
+
+## 3. Tablas y columnas
+
+### 3.1. LOCALIDAD
+
+Localidades de residencia de clientes, ubicación de salas y cobertura de transportistas.
+
+|     Columna    | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                        Descripción                      |
+|----------------|-----------------|-------------|--------------------------------------|---------------------------------------------------------|
+| `idLocalidad`  | `bigint`        | No          | PK; IDENTITY                         | Identificador interno de la localidad.                  |
+| `nombre`       | `varchar(150)`  | No          | Texto no vacío                       | Nombre de la localidad.                                 |
+| `provincia`    | `varchar(100)`  | No          | Texto no vacío                       | Provincia a la que pertenece.                           |
+| `codigoPostal` | `varchar(10)`   | No          | Texto no vacío                       | Código postal; no identifica por sí solo una localidad. |
+
+Cada localidad debe tener exactamente un encargado regional. La existencia obligatoria del encargado se controlará al cierre de la transacción; la unicidad se define en ENCARGADO_REGIONAL.
+
+### 3.2. ENCARGADO_REGIONAL
+
+Responsable comercial de una localidad.
+
+|      Columna     | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                                           Descripción                                                |
+|------------------|-----------------|-------------|--------------------------------------|------------------------------------------------------------------------------------------------------|
+| `idEncargado`    | `bigint`        | No          | PK; IDENTITY                         | Identificador del encargado.                                                                         |
+| `datosEncargado` | `varchar(200)`  | No          | Texto no vacío                       | Nombre completo del encargado. No contiene listas de teléfonos, documentos ni otros datos agrupados. |
+| `idLocalidad`    | `bigint`        | No          | FK → LOCALIDAD(idLocalidad); UNIQUE  | Localidad a su cargo.                                                                                |
+
+La FK y UNIQUE impiden que un encargado quede sin localidad y que una localidad tenga más de un encargado. Un control diferido adicional garantizará que ninguna localidad quede sin encargado al finalizar una transacción. El reemplazo de un encargado se realiza dentro de una transacción.
+
+### 3.3. SALA_VENTA
+
+Salas de venta de la empresa.
+
+|       Columna      | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                                           Descripción                                                |
+|--------------------|-----------------|-------------|--------------------------------------|------------------------------------------------------------------------------------------------------|
+| `idSalaVenta`      | `bigint`        | No          | PK; IDENTITY                         | Identificador de la sala.                                                                            |
+| `calle`            | `varchar(150)`  | No          | Texto no vacío                       | Calle del domicilio.                                                                                 |
+| `numero`           | `varchar(20)`   | No          | Texto no vacío                       | Número o indicación de domicilio sin numeración.                                                     |                 
+| `diaCierreSemanal` | `varchar(9)`    | No          | CHECK: lunes, martes, miercoles,     | Día de cierre semanal, escrito en minúsculas y sin tildes.                                           |
+|                    |                 |             | jueves, viernes, sabado o domingo    |                                                                                                      |
+| `idLocalidad`      | `bigint`        | No          | FK → LOCALIDAD(idLocalidad)          | Localidad donde se encuentra la sala.                                                                |
+
+La dirección se representa únicamente mediante calle y numero. El encargado de la sala se obtiene a través de su localidad.
+
+### 3.4. EMPLEADO
+
+Empleados asignados a una sala de venta.
+
+|        Columna        | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                        Descripción                      |
+|-----------------------|-----------------|-------------|--------------------------------------|---------------------------------------------------------|
+| `cuit`                | `dom_cuit`      | No          | PK                                   | CUIT del empleado.                                      |
+| `nombre`              | `varchar(150)`  | No          | Texto no vacío                       | Nombre completo.                                        |
+| `fechaIngresoLaboral` | `date`          | No          | —                                    | Fecha de incorporación laboral.                         |
+| `salario`             | `numeric(12,2)` | No          | CHECK: salario > 0                   | Salario mensual en pesos argentinos.                    |
+| `idSalaVenta`         | `bigint`        | No          | FK → SALA_VENTA(idSalaVenta)         | Única sala en la que trabaja.                           |
+
+### 3.5. DEPARTAMENTO
+
+Departamentos donde se ubican las fincas.
+
+|        Columna       | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                        Descripción                      |
+|----------------------|-----------------|-------------|--------------------------------------|---------------------------------------------------------|
+| `idDepartamento`     | `bigint`        | No          | PK; IDENTITY                         | Identificador interno del departamento.                 |
+| `nombreDepartamento` | `varchar(100)`  | No          | Texto no vacío                       | Nombre del departamento.                                |
+| `provincia`          | `varchar(100)`  | No          | Texto no vacío                       | Provincia del departamento.                             |
+
+UNIQUE (nombreDepartamento, provincia). Los nombres se cargan con un criterio uniforme de escritura.
+
+### 3.6. FINCA
+
+Fincas destinadas al cultivo de uva.
+
+|        Columna       | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                            Descripción                               |
+|----------------------|-----------------|-------------|--------------------------------------|----------------------------------------------------------------------|
+| `id`                 | `bigint`        | No          | PK; IDENTITY                         | Identificador de la finca, referido como idFinca desde otras tablas. |
+| `nombre`             | `varchar(150)`  | No          | Texto no vacío                       | Nombre de la finca.                                                  |
+| `superficieTotal`    | `numeric(12,2)` | No          | CHECK: superficieTotal > 0           | Superficie total en hectáreas.                                       |
+| `idDepartamento`     | `bigint`        | No          | FK → DEPARTAMENTO(idDepartamento)    | Departamento donde se ubica.                                         |
+
+### 3.7. CEPA
+
+Catálogo de cepas cultivadas y utilizadas en los vinos.
+
+|        Columna       | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                              Descripción                             |
+|----------------------|-----------------|-------------|--------------------------------------|----------------------------------------------------------------------|
+| `idCepa`             | `bigint`        | No          | PK; IDENTITY                         | Identificador de la cepa.                                            |
+| `nombre`             | `varchar(100)`  | No          | Texto no vacío                       | Nombre de la cepa.                                                   |
+| `tipo`               | `varchar(6)`    | No          | CHECK: tipo IN ('tinta', 'blanca')   | Tipo de cepa.                                                        |
+
+### 3.8. PARCELAS
+
+Divisiones de una finca; entidad dependiente de FINCA.
+
+**Clave primaria:** `(idFinca, numeroParcela)`.
+
+|        Columna       | Tipo PostgreSQL | Admite NULL |   Restricciones / valor predeterminado  |                              Descripción                             |
+|----------------------|-----------------|-------------|-----------------------------------------|----------------------------------------------------------------------|
+| `idFinca`            | `bigint`        | No          | PK compuesta; FK → FINCA(id)            | Finca a la que pertenece.                                            |
+| `numeroParcela`      | `integer`       | No          | PK compuesta; CHECK: numeroParcela > 0  | Número único dentro de la finca.                                     |
+| `superficie`         | `numeric(12,2)` | No          | CHECK: superficie > 0                   | Superficie en hectáreas.                                             |
+| `añoPlantacion`      | `smallint`      | No          | CHECK: añoPlantacion BETWEEN 1 AND 9999 | Año de plantación.                                                   |
+| `idCepa`             | `bigint`        | No          | FK → CEPA(idCepa)                       | Única cepa plantada en la parcela.                                   |
+
+### 3.9. BODEGA
+
+Bodegas del grupo que reciben uva y elaboran vinos.
+
+|      Columna     | Tipo PostgreSQL | Admite NULL |   Restricciones / valor predeterminado  |                              Descripción                             |
+|------------------|-----------------|-------------|-----------------------------------------|----------------------------------------------------------------------|
+| `cuit`           | `dom_cuit`      | No          | PK                                      | CUIT de la bodega.                                                   |
+| `razonSocial`    | `varchar(200)`  | No          | Texto no vacío                          | Razón social.                                                        |
+| `domicilio`      | `varchar(250)`  | No          | Texto no vacío                          | Domicilio de la bodega.                                              |
+
+### 3.10. LOTE
+
+Lotes de uva generados por cosecha de una parcela en una campaña.
+
+|        Columna       | Tipo PostgreSQL | Admite NULL |Restricciones / valor predeterminado |                Descripción                 |
+|----------------------|-----------------|-------------|-------------------------------------|--------------------------------------------|
+| `numero`             | `bigint`        | No          | PK; CHECK: numero > 0               | Número de lote, único en la empresa.       |
+| `fechaCosecha`       | `date`          | No          | —                                   | Fecha de cosecha.                          |
+| `kilosCosechados`    | `numeric(12,2)` | No          | CHECK: kilosCosechados > 0          | Peso cosechado en kg.                      |
+| `campaña`            | `smallint`      | No          | CHECK: campaña BETWEEN 1 AND 9999   | Año de cosecha.                            |
+| `idFinca`            | `bigint`        | No          | Parte de FK compuesta a PARCELAS    | Finca de la parcela cosechada.             |
+| `numeroParcela`      | `integer`       | No          | Parte de FK compuesta a PARCELAS    | Parcela cosechada dentro de la finca.      |
+| `cuitBodega`         | `dom_cuit`      | No          | FK → BODEGA(cuit)                   | Bodega a la que se entregó la uva.         |
+
+FK (idFinca, numeroParcela) → PARCELAS(idFinca, numeroParcela). UNIQUE (idFinca, numeroParcela, campaña). CHECK (campaña = EXTRACT(YEAR FROM fechaCosecha)). Cada lote debe tener al menos un análisis de calidad; esta participación mínima requiere un control diferido.
+
+### 3.11. ANALISIS_CALIDAD
+
+Resultados de los análisis realizados a cada lote.
+
+|      Columna     | Tipo PostgreSQL | Admite NULL |   Restricciones / valor predeterminado  |                  Descripción                      |
+|------------------|-----------------|-------------|-----------------------------------------|---------------------------------------------------|
+| `idAnalisis`     | `bigint`        | No          | PK; IDENTITY                            | Identificador del análisis.                       |
+| `fecha`          | `date`          | No          | —                                       | Fecha del análisis.                               |
+| `gradoBrix`      | `numeric(5,2)`  | No          | CHECK: gradoBrix BETWEEN 0 AND 100      | Contenido de sólidos solubles expresado en °Brix. |
+| `ph`             | `numeric(4,2)`  | No          | CHECK: ph BETWEEN 0 AND 14              | pH de la muestra.                                 |
+| `acidezTotal`    | `numeric(8,2)`  | No          | CHECK: acidezTotal > 0                  | Acidez total en g/L.                              |
+| `numeroLote`     | `bigint`        | No          | FK → LOTE(numero)                       | Lote analizado.                                   |
+
+### 3.12. VINO
+
+Vinos comercializados; el código identifica la presentación y añada.
+
+|        Columna         | Tipo PostgreSQL | Admite NULL |           Restricciones / valor predeterminado            |                     Descripción                        |
+|------------------------|-----------------|-------------|-----------------------------------------------------------|--------------------------------------------------------|
+| `codigoVino`           | `bigint`        | No          | PK; CHECK: codigoVino > 0                                 | Código del vino.                                       |
+| `nombre`               | `varchar(150)`  | No          | Texto no vacío                                            | Nombre comercial.                                      |
+| `volumen`              | `numeric(10,2)` | No          | CHECK: volumen > 0                                        | Volumen de la presentación en ml.                      | 
+| `graduacionAlcoholica` | `numeric(5,2)`  | No          | CHECK: graduacionAlcoholica BETWEEN 5 AND 20              | Graduación alcohólica porcentual.                      |
+| `tipo`                 | `varchar(10)`   | No          | CHECK: tipo IN ('tinto', 'blanco', 'rosado', 'espumante') | Tipo de vino.                                          |
+| `añada`                | `smallint`      | No          | CHECK: añada BETWEEN 1 AND 9999                           | Año de la cosecha utilizada para identificar la añada. |
+| `precio`               | `numeric(12,2)` | No          | CHECK: precio > 0                                         | Precio de venta vigente, común a todas las salas.      |
+| `cuitBodega`           | `dom_cuit`      | No          | FK → BODEGA(cuit)                                         | Bodega elaboradora.                                    |
+
+Cada vino debe tener al menos una cepa y un maridaje. No se declara UNIQUE sobre nombre: pueden existir vinos con el mismo nombre y distintas añadas o presentaciones. Todo cambio de precio genera una fila de AUDITORIA_PRECIO.
+
+### 3.13. componen
+
+Composición de cada vino por cepa.
+
+**Clave primaria:** `(codigoVino, idCepa)`.
+
+|        Columna         | Tipo PostgreSQL | Admite NULL |     Restricciones / valor predeterminado    |                     Descripción                        |
+|------------------------|-----------------|-------------|---------------------------------------------|--------------------------------------------------------|
+| `codigoVino`           | `bigint`        | No          | PK compuesta; FK → VINO(codigoVino)         | Vino compuesto.                                        |
+| `idCepa`               | `bigint`        | No          | PK compuesta; FK → CEPA(idCepa)             | Cepa utilizada.                                        |
+| `porcentaje`           | `numeric(5,2)`  | No          | CHECK: porcentaje > 0 AND porcentaje <= 100 | Participación de la cepa en el vino.                   |
+
+La suma de los porcentajes de cada vino debe ser exactamente 100.00. Se controlará mediante un constraint trigger diferido, incluyendo los cambios y eliminaciones de composición.
+
+### 3.14. MARIDAJE
+
+Catálogo de maridajes con su temperatura sugerida.
+
+|     Columna    | Tipo PostgreSQL | Admite NULL |Restricciones / valor predeterminado  |                Descripción                 |
+|----------------|-----------------|-------------|--------------------------------------|--------------------------------------------|
+| `idMaridaje`   | `bigint`        | No          | PK; IDENTITY                         | Identificador del maridaje.                |
+| `nombre`       | `varchar(150)`  | No          | Texto no vacío                       | Alimento o preparación recomendada.        |
+| `temperatura`  | `numeric(5,2)`  | No          | —                                    | Temperatura sugerida de servicio en °C.    |
+
+### 3.15. tienen
+
+Asociación de vinos con sus maridajes recomendados.
+
+**Clave primaria:** `(codigoVino, idMaridaje)`.
+
+|        Columna       | Tipo PostgreSQL | Admite NULL |   Restricciones / valor predeterminado  |      Descripción      |
+|----------------------|-----------------|-------------|-----------------------------------------|-----------------------|
+| `codigoVino`         | `bigint`        | No          | PK compuesta; FK → VINO(codigoVino)     | Vino.                 |
+| `idMaridaje`         | `bigint`        | No          | PK compuesta; FK → MARIDAJE(idMaridaje) | Maridaje recomendado. |
+
+### 3.16. AUDITORIA_PRECIO
+
+Historial de modificaciones del precio de venta.
+
+|      Columna     |       Tipo PostgreSQL         | Admite NULL |Restricciones / valor predeterminado  |                                 Descripción                                    |
+|------------------|-------------------------------|-------------|--------------------------------------|--------------------------------------------------------------------------------|
+| `idAuditoria`    | `bigint`                      | No          | PK; IDENTITY                         | Identificador del registro.                                                    |
+| `codigoVino`     | `bigint`                      | No          | FK → VINO(codigoVino)                | Vino cuyo precio cambió.                                                       |
+| `precioAnterior` | `numeric(12,2)`               | No          | CHECK: precioAnterior > 0            | Precio previo al cambio.                                                       |
+| `precioNuevo`    | `numeric(12,2)`               | No          | CHECK: precioNuevo > 0               | Precio posterior al cambio.                                                    |
+| `fechaHora`      | `timestamp without time zone` | No          | Asignado por trigger                 | Fecha y hora de la modificación.                                               |
+| `usuario`        | `varchar(100)`                | No          | Asignado por trigger                 | Rol de base de datos que ejecuta el cambio; no requiere una tabla de usuarios. |
+
+CHECK (precioAnterior <> precioNuevo). El trigger registra únicamente cambios efectivos de precio. Los registros de auditoría no se cargan ni modifican manualmente.
+
+### 3.17. CLIENTE
+
+Datos comunes de los tres tipos de cliente.
+
+|      Columna      |       Tipo PostgreSQL         | Admite NULL |         Restricciones / valor predeterminado         |                 Descripción                    |
+|-------------------|-------------------------------|-------------|------------------------------------------------------|------------------------------------------------|
+| `idCliente`       | `bigint`                      | No          | PK; IDENTITY                                         | Identificador del cliente.                     |
+| `apellido`        | `varchar(150)`                | Sí          | Obligatorio junto con nombre si no hay razonSocial   | Apellido de la persona.                        |
+| `nombre`          | `varchar(150)`                | Sí          | Obligatorio junto con apellido si no hay razonSocial | Nombre de la persona.                          |
+| `razonSocial`     | `varchar(200)`                | Sí          | Alternativa a nombre y apellido                      | Razón social de la organización.               |
+| `tipoDocumento`   | `varchar(20)`                 | No          | Texto no vacío                                       | Tipo de documento identificatorio.             |
+| `numeroDocumento` | `varchar(30)`                 | No          | Texto no vacío                                       | Número de documento; se conserva como texto.   |
+| `direccion`       | `varchar(250)`                | No          | Texto no vacío                                       | Domicilio del cliente.                         |
+| `idLocalidad`     | `bigint`                      | No          | FK → LOCALIDAD(idLocalidad)                          | Localidad de residencia.                       |
+| `fechaAlta`       | `date`                        | No          | DEFAULT CURRENT_DATE                                 | Fecha de alta.                                 |
+| `descuento`       | `numeric(5,2)`                | No          | CHECK: descuento IN (10.00, 20.00, 30.00)            | Porcentaje vigente determinado por el subtipo. |
+
+UNIQUE (tipoDocumento, numeroDocumento). Debe informarse nombre y apellido completos, o razón social. Cuando se adopta la identificación por razón social, nombre y apellido quedan en NULL; cuando se adopta la identificación personal, razonSocial queda en NULL. Esta condición se expresa con un CHECK entre columnas.
+
+La especialización es total y disjunta: todo cliente pertenece exactamente a uno de SOCIO_CLUB, DISTRIBUIDOR o EXPORTADOR. Se requiere control diferido sobre las cuatro tablas para permitir su alta conjunta en una transacción. El descuento se mantiene en la base según el subtipo: 10.00, 20.00 o 30.00, respectivamente. No se acepta un porcentaje cargado independientemente del subtipo.
+
+### 3.18. SOCIO_CLUB
+
+Clientes consumidores finales del club.
+
+|      Columna      |       Tipo PostgreSQL         | Admite NULL |         Restricciones / valor predeterminado         |                        Descripción                           |
+|-------------------|-------------------------------|-------------|------------------------------------------------------|--------------------------------------------------------------|
+| `idCliente`       | `bigint`                      | No          | PK y FK → CLIENTE(idCliente)                         | Cliente que pertenece al club; clave heredada, sin IDENTITY. |
+
+No posee atributos específicos. Le corresponde un descuento del 10 %.
+
+### 3.19. DISTRIBUIDOR
+
+Datos específicos de los clientes distribuidores.
+
+|        Columna       | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                                 Descripción                                   |
+|----------------------|-----------------|-------------|--------------------------------------|-------------------------------------------------------------------------------|
+| `idCliente`          | `bigint`        | No          | PK y FK → CLIENTE(idCliente)         | Cliente distribuidor; clave heredada, sin IDENTITY.                           |
+| `zonaCobertura`      | `varchar(250)`  | No          | Texto no vacío                       | Descripción de la zona de distribución; no contiene una lista de localidades. |
+| `numeroHabilitacion` | `varchar(50)`   | No          | Texto no vacío                       | Número de habilitación del distribuidor.                                      |
+
+Le corresponde un descuento del 20 %. No se presupone que el número de habilitación sea único entre todas las autoridades emisoras.
+
+### 3.20. EXPORTADOR
+
+Datos específicos de los clientes exportadores.
+
+|        Columna         | Tipo PostgreSQL | Admite NULL |         Restricciones / valor predeterminado         |                   Descripción                     |
+|------------------------|-----------------|-------------|------------------------------------------------------|---------------------------------------------------|
+| `idCliente`            | `bigint`        | No          | PK y FK → CLIENTE(idCliente)                         | Cliente exportador; clave heredada, sin IDENTITY. |
+| `paisDestinoPrincipal` | `varchar(100)`  | No          | Texto no vacío                                       | País de destino principal de sus exportaciones.   |
+
+Le corresponde un descuento del 30 %. Puede tener cero o más permisos.
+
+### 3.21. PERMISOS
+
+Permisos de exportación asociados a exportadores.
+
+|        Columna         | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                   Descripción                     |
+|------------------------|-----------------|-------------|--------------------------------------|---------------------------------------------------|
+| `codigo`               | `varchar(50)`   | No          | PK; texto no vacío                   | Código único del permiso dentro del sistema.      |
+| `fechaEmision`         | `date`          | No          | —                                    | Fecha de emisión.                                 |
+| `fechaVencimiento`     | `date`          | No          | —                                    | Fecha de vencimiento.                             |
+| `idExportador`         | `bigint`        | No          | FK → EXPORTADOR(idCliente)           | Exportador titular del permiso.                   |
+
+CHECK (fechaVencimiento > fechaEmision).
+
+### 3.22. COMPROBANTE
+
+Cabeceras de ventas realizadas a cualquier tipo de cliente en una sala.
+
+|    Columna    | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                         Descripción                      |
+|---------------|-----------------|-------------|--------------------------------------|----------------------------------------------------------|
+| `numero`      | `bigint`        | No          | PK; CHECK: numero > 0                | Número único del comprobante.                            |
+| `fecha`       | `date`          | No          | DEFAULT CURRENT_DATE                 | Fecha de venta.                                          |
+| `idCliente`   | `bigint`        | No          | FK → CLIENTE(idCliente)              | Cliente comprador.                                       |
+| `idSalaVenta` | `bigint`        | No          | FK → SALA_VENTA(idSalaVenta)         | Sala donde se realiza la venta.                          |
+| `subtotal`    | `numeric(12,2)` | No          | CHECK: subtotal >= 0; calculado      | Importe bruto antes de descuentos.                       |
+| `descuento`   | `numeric(12,2)` | No          | CHECK: descuento >= 0; calculado     | Importe monetario total descontado; no es un porcentaje. |
+| `total`       | `numeric(12,2)` | No          | CHECK: total >= 0; calculado         | Importe neto de la venta.                                |
+
+CHECK (descuento <= subtotal). CHECK (total = subtotal - descuento). Una venta confirmada tiene al menos un renglón. Los valores de cabecera se calculan desde los renglones; no se cargan de manera independiente. El alta y cierre de la venta se realizan dentro de una transacción.
+
+### 3.23. RENGLON_COMPROBANTE
+
+Vinos vendidos en cada comprobante.
+
+**Clave primaria:** `(numeroComprobante, codigoVino)`.
+
+|      Columna        | Tipo PostgreSQL | Admite NULL |            Restricciones / valor predeterminado                 |                         Descripción                      |
+|---------------------|-----------------|-------------|-----------------------------------------------------------------|----------------------------------------------------------|
+| `numeroComprobante` | `bigint`        | No          | PK compuesta; FK → COMPROBANTE(numero)                          | Comprobante al que pertenece.                            |
+| `codigoVino`        | `bigint`        | No          | PK compuesta; FK → VINO(codigoVino)                             | Vino vendido; aparece una sola vez por comprobante.      |
+| `cantidad`          | `integer`       | No          | CHECK: cantidad > 0                                             | Cantidad de botellas vendidas.                           |
+| `precioUnitario`    | `numeric(12,2)` | No          | CHECK: precioUnitario > 0; asignado por la base                 | Precio de una botella al momento de la venta.            |
+| `descuento`         | `numeric(5,2)`  | No          | CHECK: descuento IN (10.00, 20.00, 30.00); asignado por la base | Porcentaje histórico aplicado según el tipo de cliente.  |
+| `subtotalRenglon`   | `numeric(12,2)` | No          | CHECK: subtotalRenglon >= 0; calculado                          | Importe neto del renglón, con descuento aplicado.        |
+
+Todos los renglones de una venta utilizan el porcentaje correspondiente al cliente al realizarla. Las modificaciones futuras del precio del vino o del subtipo del cliente no recalculan ventas anteriores. La venta verifica y descuenta el stock de la sala en forma transaccional.
+
+### 3.24. EMPRESAS_TRANSPORTE
+
+Empresas habilitadas para trasladar vinos.
+
+|      Columna        | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                       Descripción                      |
+|---------------------|-----------------|-------------|--------------------------------------|--------------------------------------------------------| 
+| `codigoTransporte`  | `bigint`        | No          | PK; CHECK: codigoTransporte > 0      | Código del transportista.                              |
+| `razonSocial`       | `varchar(200)`  | No          | Texto no vacío                       | Razón social.                                          |
+| `cuit`              | `dom_cuit`      | No          | UNIQUE                               | CUIT de la empresa.                                    |
+| `email`             | `varchar(254)`  | No          | Texto no vacío                       | Correo electrónico de contacto.                        |
+| `telefono`          | `varchar(30)`   | No          | Texto no vacío                       | Teléfono de contacto, con prefijos cuando corresponda. |
+| `domicilio`         | `varchar(250)`  | No          | Texto no vacío                       | Domicilio de la empresa.                               |
+
+### 3.25. alcanza
+
+Localidades cubiertas por cada empresa de transporte.
+
+**Clave primaria:** `(codigoTransporte, idLocalidad)`.
+
+|      Columna        | Tipo PostgreSQL | Admite NULL |           Restricciones / valor predeterminado           |              Descripción              |
+|---------------------|-----------------|-------------|----------------------------------------------------------|---------------------------------------| 
+| `codigoTransporte`  | `bigint`        | No          | PK compuesta; FK → EMPRESAS_TRANSPORTE(codigoTransporte) | Transportista que brinda el servicio. |
+| `idLocalidad`       | `bigint`        | No          | PK compuesta; FK → LOCALIDAD(idLocalidad)                | Localidad cubierta.                   |
+
+### 3.26. DEPOSITO
+
+Único depósito central de la empresa.
+
+|    Columna   | Tipo PostgreSQL | Admite NULL | Restricciones / valor predeterminado |                      Descripción                       |
+|--------------|-----------------|-------------|--------------------------------------|--------------------------------------------------------| 
+| `idDeposito` | `bigint`        | No          | PK; CHECK: idDeposito = 1            | Identificador fijo del depósito central; sin IDENTITY. |
+
+Se crea el registro con idDeposito = 1 como dato inicial. El CHECK y la PK permiten a lo sumo un depósito; no garantizan por sí solos la existencia del registro. El depósito se conserva como dato de configuración y no se habilita su eliminación operativa.
+
+### 3.27. almacena
+
+Stock de cada vino en el depósito central.
+
+|     Columna     | Tipo PostgreSQL | Admite NULL |        Restricciones / valor predeterminado      |           Descripción            |
+|-----------------|-----------------|-------------|--------------------------------------------------|----------------------------------| 
+| `codigoVino`    | `bigint`        | No          | PK y FK → VINO(codigoVino)                       | Vino almacenado.                 |
+| `idDeposito`    | `bigint`        | No          | FK → DEPOSITO(idDeposito); CHECK: idDeposito = 1 | Depósito central.                |
+| `cantidadStock` | `integer`       | No          | CHECK: cantidadStock >= 0; DEFAULT 0             | Cantidad disponible de botellas. |
+
+La PK es únicamente codigoVino porque existe un solo depósito. La ausencia de una fila se interpreta como stock cero; los movimientos crean la fila cuando sea necesario.
+
+### 3.28. posee
+
+Stock de cada vino en cada sala de venta.
+
+**Clave primaria:** `(idSalaVenta, codigoVino)`.
+
+|     Columna     | Tipo PostgreSQL | Admite NULL |    Restricciones / valor predeterminado    |           Descripción            |
+|-----------------|-----------------|-------------|--------------------------------------------|----------------------------------| 
+| `idSalaVenta`   | `bigint`        | No          | PK compuesta; FK → SALA_VENTA(idSalaVenta) | Sala que posee el stock.         |
+| `codigoVino`    | `bigint`        | No          | PK compuesta; FK → VINO(codigoVino)        | Vino disponible.                 |
+| `cantidadStock` | `integer`       | No          | CHECK: cantidadStock >= 0; DEFAULT 0       | Cantidad disponible de botellas. |
+
+La ausencia de una fila se interpreta como stock cero. Las transferencias incrementan el stock y las ventas lo disminuyen, sin permitir valores negativos.
+
+### 3.29. INGRESOS
+
+Cabeceras de ingresos de vinos desde una bodega al depósito central.
+
+|      Columna       |   Tipo PostgreSQL  | Admite NULL |       Restricciones / valor predeterminado       |              Descripción               |
+|--------------------|--------------------|-------------|--------------------------------------------------|----------------------------------------| 
+| `codigoIngreso`    | `bigint`           | No          | PK; CHECK: codigoIngreso > 0                     | Código del ingreso.                    |
+| `fecha`            | `date`             | No          | DEFAULT CURRENT_DATE                             | Fecha del ingreso.                     |
+| `estado`           | `estado_documento` | No          | DEFAULT 'en_confeccion'                          | Estado del ingreso.                    |
+| `cuitBodega`       | `dom_cuit`         | No          | FK → BODEGA(cuit)                                | Bodega de origen.                      |
+| `codigoTransporte` | `bigint`           | No          | FK → EMPRESAS_TRANSPORTE(codigoTransporte)       | Transportista que efectuó el traslado. |
+| `idDeposito`       | `bigint`           | No          | FK → DEPOSITO(idDeposito); CHECK: idDeposito = 1 | Depósito de destino.                   |
+
+Solo se procesan ingresos terminados. Al procesarlos se incrementa el stock del depósito y se pasa a procesado, todo dentro de una transacción. No se permite procesar dos veces el mismo ingreso.
+
+### 3.30. contiene
+
+Detalle de vinos y cantidades de cada ingreso.
+
+**Clave primaria:** `(codigoIngreso, codigoVino)`.
+
+|       Columna      | Tipo PostgreSQL | Admite NULL |    Restricciones / valor predeterminado    |           Descripción            |
+|--------------------|-----------------|-------------|--------------------------------------------|----------------------------------| 
+| `codigoIngreso`    | `bigint`        | No          | PK compuesta; FK → INGRESOS(codigoIngreso) | Ingreso al que pertenece.        |
+| `codigoVino`       | `bigint`        | No          | PK compuesta; FK → VINO(codigoVino)        | Vino ingresado.                  |
+| `cantidadBotellas` | `integer`       | No          | CHECK: cantidadBotellas > 0                | Cantidad de botellas recibidas.  |
+
+Solo se agregan, modifican o eliminan renglones mientras el ingreso está en_confeccion.
+
+### 3.31. TRANSFERENCIA
+
+Solicitudes de vinos desde una sala al depósito central.
+
+|       Columna      |  Tipo PostgreSQL   | Admite NULL |    Restricciones / valor predeterminado    |                        Descripción                        |
+|--------------------|--------------------|-------------|--------------------------------------------|-----------------------------------------------------------| 
+| `numeroSolicitud`  | `bigint`           | No          | PK; CHECK: numeroSolicitud > 0             | Número de solicitud.                                      |
+| `estado`           | `estado_documento` | No          | DEFAULT 'en_confeccion'                    | Estado de la transferencia.                               |
+| `fechaConfeccion`  | `date`             | No          | DEFAULT CURRENT_DATE; inmutable            | Fecha actual al crear la solicitud; se valida en la base. |
+| `idSalaVenta`      | `bigint`           | No          | FK → SALA_VENTA(idSalaVenta)               | Sala solicitante y receptora.                             |
+
+Solo se procesan transferencias terminadas. Se valida stock suficiente para todos los renglones; se resta del depósito y se suma a la sala en una única transacción. La transferencia pasa a procesado y no puede volver a procesarse. No se vincula a un comprobante de venta.
+
+### 3.32. incluye
+
+Detalle de vinos solicitados en cada transferencia.
+
+**Clave primaria:** `(numeroSolicitud, codigoVino)`.
+
+|      Columna       |   Tipo PostgreSQL  | Admite NULL |        Restricciones / valor predeterminado       |            Descripción            |
+|--------------------|--------------------|-------------|---------------------------------------------------|-----------------------------------| 
+| `numeroSolicitud`  | `bigint`           | No          | PK compuesta; FK → TRANSFERENCIA(numeroSolicitud) | Solicitud a la que pertenece.     |
+| `codigoVino`       | `bigint`           | No          | PK compuesta; FK → VINO(codigoVino)               | Vino solicitado.                  |
+| `cantidad`         | `integer`          | No          | CHECK: cantidad > 0                               | Cantidad de botellas solicitadas. |
+
+Solo se agregan, modifican o eliminan renglones mientras la transferencia está en_confeccion.
+
+## 4. Acciones referenciales
+
+Todas las FK utilizan **ON DELETE RESTRICT**. Se impide el borrado automático de detalles, subtipos, asociaciones y movimientos. Para retirar datos sin movimientos, primero se eliminan explícitamente las referencias que corresponda, respetando las reglas de negocio. Los cambios que afecten la totalidad de una jerarquía se realizan dentro de una transacción.
+
+Las FK que apuntan al CUIT natural de BODEGA utilizan **ON UPDATE CASCADE** para propagar una corrección del CUIT. Todas las demás utilizan **ON UPDATE RESTRICT**, porque referencian identificadores estables. EMPLEADO utiliza CUIT como PK pero no tiene tablas dependientes en este modelo.
+
+La siguiente tabla enumera todas las referencias. Las acciones indicadas se asignan explícitamente a cada FK del esquema físico.
+
+|       Tabla y columna de origen       |               Referencia              | ON DELETE | ON UPDATE |
+|---------------------------------------|---------------------------------------|-----------|-----------|
+| ENCARGADO_REGIONAL.idLocalidad        | LOCALIDAD(idLocalidad)                | RESTRICT  | RESTRICT  |
+| SALA_VENTA.idLocalidad                | LOCALIDAD(idLocalidad)                | RESTRICT  | RESTRICT  |
+| EMPLEADO.idSalaVenta                  | SALA_VENTA(idSalaVenta)               | RESTRICT  | RESTRICT  |
+| FINCA.idDepartamento                  | DEPARTAMENTO(idDepartamento)          | RESTRICT  | RESTRICT  |
+| PARCELAS.idFinca                      | FINCA(id)                             | RESTRICT  | RESTRICT  |
+| PARCELAS.idCepa                       | CEPA(idCepa)                          | RESTRICT  | RESTRICT  |
+| LOTE.cuitBodega                       | BODEGA(cuit)                          | RESTRICT  | CASCADE   |
+| ANALISIS_CALIDAD.numeroLote           | LOTE(numero)                          | RESTRICT  | RESTRICT  |
+| VINO.cuitBodega                       | BODEGA(cuit)                          | RESTRICT  | CASCADE   |
+| componen.codigoVino                   | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| componen.idCepa                       | CEPA(idCepa)                          | RESTRICT  | RESTRICT  |
+| tienen.codigoVino                     | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| tienen.idMaridaje                     | MARIDAJE(idMaridaje)                  | RESTRICT  | RESTRICT  |
+| AUDITORIA_PRECIO.codigoVino           | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| CLIENTE.idLocalidad                   | LOCALIDAD(idLocalidad)                | RESTRICT  | RESTRICT  |
+| SOCIO_CLUB.idCliente                  | CLIENTE(idCliente)                    | RESTRICT  | RESTRICT  |
+| DISTRIBUIDOR.idCliente                | CLIENTE(idCliente)                    | RESTRICT  | RESTRICT  |
+| EXPORTADOR.idCliente                  | CLIENTE(idCliente)                    | RESTRICT  | RESTRICT  |
+| PERMISOS.idExportador                 | EXPORTADOR(idCliente)                 | RESTRICT  | RESTRICT  |
+| COMPROBANTE.idCliente                 | CLIENTE(idCliente)                    | RESTRICT  | RESTRICT  |
+| COMPROBANTE.idSalaVenta               | SALA_VENTA(idSalaVenta)               | RESTRICT  | RESTRICT  |
+| RENGLON_COMPROBANTE.numeroComprobante | COMPROBANTE(numero)                   | RESTRICT  | RESTRICT  |
+| RENGLON_COMPROBANTE.codigoVino        | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| alcanza.codigoTransporte              | EMPRESAS_TRANSPORTE(codigoTransporte) | RESTRICT  | RESTRICT  |
+| alcanza.idLocalidad                   | LOCALIDAD(idLocalidad)                | RESTRICT  | RESTRICT  |
+| almacena.codigoVino                   | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| almacena.idDeposito                   | DEPOSITO(idDeposito)                  | RESTRICT  | RESTRICT  |
+| posee.idSalaVenta                     | SALA_VENTA(idSalaVenta)               | RESTRICT  | RESTRICT  |
+| posee.codigoVino                      | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| INGRESOS.cuitBodega                   | BODEGA(cuit)                          | RESTRICT  | CASCADE   |
+| INGRESOS.codigoTransporte             | EMPRESAS_TRANSPORTE(codigoTransporte) | RESTRICT  | RESTRICT  |
+| INGRESOS.idDeposito                   | DEPOSITO(idDeposito)                  | RESTRICT  | RESTRICT  |
+| contiene.codigoIngreso                | INGRESOS(codigoIngreso)               | RESTRICT  | RESTRICT  |
+| contiene.codigoVino                   | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| TRANSFERENCIA.idSalaVenta             | SALA_VENTA(idSalaVenta)               | RESTRICT  | RESTRICT  |
+| incluye.numeroSolicitud               | TRANSFERENCIA(numeroSolicitud)        | RESTRICT  | RESTRICT  |
+| incluye.codigoVino                    | VINO(codigoVino)                      | RESTRICT  | RESTRICT  |
+| LOTE.(idFinca, numeroParcela)         | PARCELAS(idFinca, numeroParcela)      | RESTRICT  | RESTRICT  |
+
+## 5. Descuentos e importes históricos
+
+### 5.1. Significado de cada descuento
+ 
+|             Columna           |                    Significado                    |              Unidad              |
+|-------------------------------|---------------------------------------------------|----------------------------------|
+| CLIENTE.descuento             | Descuento vigente de acuerdo con el subtipo       | Porcentaje: 10.00, 20.00 o 30.00 |
+| RENGLON_COMPROBANTE.descuento | Descuento aplicado al realizar la venta           | Porcentaje histórico             |
+| COMPROBANTE.descuento         | Suma de los importes descontados de los renglones | Pesos argentinos                 |
+
+### 5.2. Cálculo y redondeo
+
+Para cada renglón:
+
+```text
+brutoRenglon = cantidad × precioUnitario
+importeDescuentoRenglon = ROUND(brutoRenglon × descuento / 100, 2)
+subtotalRenglon = brutoRenglon − importeDescuentoRenglon
+```
+
+El bruto y el importe de descuento del renglón son valores de cálculo; no se agregan como columnas.
+
+Para la cabecera:
+
+```text
+subtotal = SUM(brutoRenglon)
+descuento = SUM(importeDescuentoRenglon)
+total = SUM(subtotalRenglon) = subtotal − descuento
+```
+
+Se redondea el descuento de cada renglón a dos decimales antes de sumar. No se vuelve a aplicar el descuento sobre el total neto. Los cambios autorizados de renglones recalculan la cabecera dentro de la misma transacción.
+
+El precio unitario se toma del precio vigente de VINO al vender y queda guardado como dato histórico. El porcentaje aplicado se obtiene del cliente y también queda conservado. Los cambios posteriores de precio o de subtipo no alteran ventas anteriores.
+
+### 5.3. Redundancias controladas
+
+Se conservan los importes pedidos por la consigna. El subtotal neto del renglón depende de cantidad, precio y porcentaje; los importes de cabecera se obtienen de los renglones. Además, el porcentaje de descuento de una venta se repite en sus renglones, aunque es común al comprobante. CLIENTE.descuento es un dato determinado por la pertenencia al subtipo.
+
+Estas redundancias se documentan y se mantendrán mediante lógica de base de datos. En particular, la repetición del porcentaje por comprobante introduce una dependencia parcial respecto de la clave compuesta del renglón. No se afirma cumplimiento estricto de 2FN y 3FN para esa tabla bajo esta decisión. El carácter calculado de una columna, por sí solo, no basta para determinar si viola una forma normal: deben analizarse sus dependencias funcionales.
+
+## 6. Reglas que requieren lógica adicional
+
+| Regla |                                Condición                                  |                          Mecanismo previsto en la etapa 2                             |
+|-------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| RN-01 | Precio positivo y común a todas las salas                                 | Precio en VINO y CHECK                                                                |
+| RN-02 | Una localidad por sala y exactamente un encargado por localidad           | FK NOT NULL, UNIQUE sobre encargado.idLocalidad y control diferido de existencia      |
+| RN-03 | Una sala por empleado                                                     | FK NOT NULL                                                                           |
+| RN-04 | Una cepa por parcela y una cosecha por parcela y campaña                  | FK NOT NULL y UNIQUE compuesto en LOTE                                                |
+| RN-05 | Composición de cada vino igual a 100 %                                    | CHECK por fila y constraint trigger diferido                                          |
+| RN-06 | Descuento según subtipo                                                   | Función de descuento y control de coherencia con la jerarquía                         |
+| RN-07 | Vencimiento posterior a emisión                                           | FK al exportador y CHECK entre fechas                                                 |
+| RN-08 | Importes calculados desde los renglones                                   | Función de cálculo y triggers; protección de la escritura de importes                 |
+| RN-09 | No vender más que el stock de sala                                        | Validación y descuento transaccional con bloqueo de stock; CHECK de stock no negativo |
+| RN-10 | Procesar ingresos terminados una sola vez                                 | ENUM, trigger de estados y procedimiento transaccional                                |
+| RN-11 | Procesar transferencias terminadas con stock suficiente y fecha inmutable | ENUM, triggers de estado y fecha, procedimiento transaccional con bloqueo de stock    |
+| RN-12 | Detalles editables solo en confección                                     | Trigger sobre INSERT, UPDATE y DELETE de contiene e incluye                           |
+| RN-13 | Auditar cambios efectivos de precio                                       | Trigger AFTER UPDATE sobre VINO                                                       |
+| RN-14 | Impedir borrado de vinos, bodegas y transportistas referenciados          | FK con ON DELETE RESTRICT                                                             |
+| RN-15 | Valores positivos y graduación entre 5 y 20                               | CHECK; los stocks admiten cero                                                        |
+
+Los ingresos y transferencias se crean en `en_confeccion` y solo permiten las transiciones `en_confeccion → terminado → procesado`. No se admiten retrocesos, saltos de estado ni altas directamente en terminado o procesado. Para pasar a terminado deben contener al menos un renglón. El paso a procesado se efectúa exclusivamente mediante el procedimiento correspondiente, junto con el movimiento de stock. Los documentos terminados y procesados no se eliminan ni admiten cambios de sus datos operativos; el único cambio posterior a terminado es su procesamiento autorizado.
+
+El DEFAULT de fechaConfeccion no impide por sí solo cargar otra fecha: un trigger exige la fecha actual en el alta e impide modificarla. Del mismo modo, los DEFAULT y los CHECK individuales no sustituyen los controles transaccionales de stock ni la validación de transiciones.
+
+Las participaciones mínimas del DER —por ejemplo, una parcela por finca, un empleado por sala, un análisis por lote, una composición y un maridaje por vino— se controlarán al finalizar la transacción cuando no puedan expresarse mediante FK. Las altas relacionadas se realizarán conjuntamente para no dejar registros incompletos.
+
+## 7. Correspondencia con el modelo relacional
+
+- FINCA conserva `idDepartamento`; el nombre del departamento y su provincia se almacenan en DEPARTAMENTO.
+- SALA_VENTA almacena `calle` y `numero`, sin una columna adicional que repita la dirección compuesta.
+- CLIENTE almacena `tipoDocumento` y `numeroDocumento`, sin repetirlos en una columna documento.
+- Las claves heredadas de SOCIO_CLUB, DISTRIBUIDOR y EXPORTADOR son PK y FK; no se generan nuevos identificadores para los subtipos.
+- `alcanza` relaciona transportistas con localidades, no con bodegas.
+- COMPROBANTE referencia al supertipo CLIENTE y a SALA_VENTA. Puede registrar ventas de cualquiera de los tres subtipos.
+- TRANSFERENCIA representa abastecimiento a una sala y no genera un comprobante de venta.
+- El stock del depósito se identifica por vino; el stock de sala, por sala y vino.
+- `datosEncargado` se define como nombre completo, sin acumular datos heterogéneos en un único campo.
+- Los cambios de nombres, las restricciones de unicidad y las reglas aquí definidas deben reflejarse en la versión final de los diagramas y del esquema SQL para mantener los entregables consistentes.
