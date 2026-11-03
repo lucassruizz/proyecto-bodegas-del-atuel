@@ -1,2 +1,2 @@
 # Diccionario de datos
-en proceso
+terminado
