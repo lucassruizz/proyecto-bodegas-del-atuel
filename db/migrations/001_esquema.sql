@@ -1,1 +1,0 @@
-	-- Esquema físico pendiente de elaboración.
