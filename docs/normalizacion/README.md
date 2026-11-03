@@ -1,2 +1,4 @@
 # Normalización hasta 3FN
-en proceso
+terminado
+
+https://canva.link/b0gxspq9tbp4j9s
