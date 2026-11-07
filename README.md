@@ -18,4 +18,3 @@ El diccionario de datos.
 El archivo SQL para crear las tablas en PostgreSQL.
 También tenemos que comprobar que la base se pueda crear desde cero en un contenedor de PostgreSQL.
 
-Por ahora estamos trabajando en el modelado.
