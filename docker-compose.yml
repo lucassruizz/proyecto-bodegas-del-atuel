@@ -5,11 +5,36 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-bodegas}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Completar POSTGRES_PASSWORD en .env}
+      DB_API_PASSWORD: ${DB_API_PASSWORD:?Completar DB_API_PASSWORD en .env}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=\"$$DB_API_PASSWORD\" psql -X -h 127.0.0.1 -U bodega_api -d \"$$POSTGRES_DB\" -Atqc 'SELECT 1'"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-bodegas}
+      DB_USER: bodega_api
+      DB_PASSWORD: ${DB_API_PASSWORD:?Completar DB_API_PASSWORD en .env}
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/salud', timeout=3).close()"]
+      interval: 2s
+      timeout: 4s
+      retries: 15
 
 volumes:
   postgres_data:

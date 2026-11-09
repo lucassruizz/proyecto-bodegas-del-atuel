@@ -135,7 +135,7 @@ python -m pip install -r db/seed/requirements.txt
 
 DB_HOST="$PGHOST" DB_PORT="$PGPORT" DB_NAME="$PGDATABASE" \
   DB_USER="$PGUSER" DB_PASSWORD="$PGPASSWORD" \
-  python db/seed/008_carga_masiva.py || exit 1
+  python db/seed/carga.py || exit 1
 
 python db/rendimiento/medir.py mediciones-etapa-4
 ```

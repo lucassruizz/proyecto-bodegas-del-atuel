@@ -17,13 +17,14 @@ Trabajo práctico integrador de Bases de Datos de la UTN San Rafael, 2026.
 | 3. Carga masiva | [Script y catálogos](db/seed/) y [guía de carga](docs/etapa-3/README.md) |
 | 4. Rendimiento | [Consultas y mediciones](db/rendimiento/) e [informe con planes de ejecución](docs/etapa-4/README.md) |
 | 5. Consultas SQL | [Scripts de consultas](consultas/) e [informe con evidencia](docs/etapa-5/README.md) |
+| 6. API REST | [Arranque y pruebas](api/README.md), [guía de estudio](docs/etapa-6/README.md) y Swagger en `/docs` |
 
-Las carpetas [`api/`](api/) y [`front/`](front/) están reservadas para las etapas 6 y 7.
+La carpeta [`front/`](front/) está reservada para la etapa 7.
 
-## PostgreSQL local
+## Arranque local
 
-1. Copiar `.env.example` a `.env` y completar `POSTGRES_PASSWORD`. Si el puerto 5432 está ocupado, cambiar `POSTGRES_PORT`.
-2. Ejecutar `docker compose up -d`. PostgreSQL aplica las migraciones 001 a 008 en orden al inicializar el volumen.
-3. Con los valores de ejemplo, abrir una sesión con `docker compose exec db psql -U postgres -d bodegas`. Ajustar el usuario y la base si se cambiaron en `.env`.
+1. Copiar `.env.example` a `.env` y completar `POSTGRES_PASSWORD` y `DB_API_PASSWORD`.
+2. Ejecutar `docker compose up --build`. En un volumen nuevo se aplican las migraciones y se configura el rol de la API.
+3. Abrir [Swagger](http://localhost:8000/docs). Si ya tenés un volumen de la etapa 5, seguir los [pasos para actualizarlo](api/README.md#volumen-existente-de-la-etapa-5).
 
 Para cargar datos históricos o reproducir las mediciones, seguir las guías de las etapas 3 y 4 sobre una base de prueba.

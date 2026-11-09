@@ -1,6 +1,6 @@
 # Carga masiva — Bodegas del Atuel
 
-El [script de carga](../../db/seed/008_carga_masiva.py) usa los [catálogos CSV](../../db/seed/csv).
+El [script de carga](../../db/seed/carga.py) usa los [catálogos CSV](../../db/seed/csv).
 El [reporte original](reporte_carga.json) y su [verificación](verificacion.json)
 documentan la ejecución de la etapa 3.
 
@@ -20,7 +20,7 @@ $env:DB_PORT = '5432'
 $env:DB_NAME = 'bodegas_prueba'
 $env:DB_USER = 'propietario_de_la_base'
 $env:DB_PASSWORD = Read-Host 'Contraseña'
-py -X utf8 db/seed/008_carga_masiva.py
+py -X utf8 db/seed/carga.py
 ```
 
 Se genera `db/seed/reporte_carga.json` al confirmar la transacción, con conteos y tiempos
