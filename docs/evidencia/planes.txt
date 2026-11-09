@@ -1,0 +1,418 @@
+S1
+QUERY PLAN
+Limit  (cost=12584.00..12584.03 rows=10 width=30) (actual time=26.687..27.414 rows=10 loops=1)
+  Buffers: shared hit=4414 read=3941
+  ->  Sort  (cost=12584.00..12584.75 rows=300 width=30) (actual time=26.686..27.411 rows=10 loops=1)
+        Sort Key: (sum(renglon_comprobante.cantidad)) DESC, v.codigovino
+        Sort Method: top-N heapsort  Memory: 25kB
+        Buffers: shared hit=4414 read=3941
+        ->  Merge Join  (cost=12474.51..12577.52 rows=300 width=30) (actual time=26.227..27.362 rows=300 loops=1)
+              Merge Cond: (renglon_comprobante.codigovino = v.codigovino)
+              Buffers: shared hit=4414 read=3941
+              ->  Finalize GroupAggregate  (cost=12474.37..12550.37 rows=300 width=16) (actual time=26.194..27.201 rows=300 loops=1)
+                    Group Key: renglon_comprobante.codigovino
+                    Buffers: shared hit=4409 read=3941
+                    ->  Gather Merge  (cost=12474.37..12544.37 rows=600 width=16) (actual time=26.187..27.064 rows=900 loops=1)
+                          Workers Planned: 2
+                          Workers Launched: 2
+                          Buffers: shared hit=4409 read=3941
+                          ->  Sort  (cost=11474.34..11475.09 rows=300 width=16) (actual time=24.950..24.962 rows=300 loops=3)
+                                Sort Key: renglon_comprobante.codigovino
+                                Sort Method: quicksort  Memory: 36kB
+                                Buffers: shared hit=4409 read=3941
+                                Worker 0:  Sort Method: quicksort  Memory: 36kB
+                                Worker 1:  Sort Method: quicksort  Memory: 36kB
+                                ->  Partial HashAggregate  (cost=11459.00..11462.00 rows=300 width=16) (actual time=24.876..24.897 rows=300 loops=3)
+                                      Group Key: renglon_comprobante.codigovino
+                                      Batches: 1  Memory Usage: 61kB
+                                      Buffers: shared hit=4393 read=3941
+                                      Worker 0:  Batches: 1  Memory Usage: 61kB
+                                      Worker 1:  Batches: 1  Memory Usage: 61kB
+                                      ->  Parallel Seq Scan on renglon_comprobante  (cost=0.00..10417.33 rows=208333 width=12) (actual time=1.730..8.969 rows=166667 loops=3)
+                                            Buffers: shared hit=4393 read=3941
+              ->  Index Scan using pk_vino on vino v  (cost=0.15..19.65 rows=300 width=22) (actual time=0.030..0.074 rows=300 loops=1)
+                    Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=174
+Planning Time: 0.257 ms
+Execution Time: 27.503 ms
+(36 rows)
+
+S3
+QUERY PLAN
+Aggregate  (cost=272.46..272.47 rows=1 width=24) (actual time=0.100..0.100 rows=1 loops=1)
+  Buffers: shared hit=218
+  ->  Nested Loop Left Join  (cost=14.11..272.21 rows=34 width=24) (actual time=0.053..0.098 rows=30 loops=1)
+        Buffers: shared hit=218
+        ->  Nested Loop Left Join  (cost=13.83..186.01 rows=34 width=24) (actual time=0.051..0.082 rows=30 loops=1)
+              Buffers: shared hit=158
+              ->  Nested Loop Left Join  (cost=13.55..99.81 rows=34 width=16) (actual time=0.044..0.062 rows=30 loops=1)
+                    Buffers: shared hit=97
+                    ->  HashAggregate  (cost=13.27..13.61 rows=34 width=8) (actual time=0.041..0.043 rows=30 loops=1)
+                          Group Key: comprobante.idcliente
+                          Batches: 1  Memory Usage: 24kB
+                          Buffers: shared hit=37
+                          ->  Index Only Scan using idx_comprobante_sala_fecha on comprobante  (cost=0.43..13.18 rows=34 width=8) (actual time=0.014..0.037 rows=30 loops=1)
+                                Index Cond: ((idsalaventa = 1) AND (fecha >= (CURRENT_DATE - 6)) AND (fecha <= CURRENT_DATE))
+                                Heap Fetches: 30
+                                Buffers: shared hit=37
+                    ->  Index Only Scan using pk_socio_club on socio_club s  (cost=0.28..2.54 rows=1 width=8) (actual time=0.000..0.000 rows=0 loops=30)
+                          Index Cond: (idcliente = comprobante.idcliente)
+                          Heap Fetches: 0
+                          Buffers: shared hit=60
+              ->  Index Only Scan using pk_distribuidor on distribuidor d  (cost=0.28..2.54 rows=1 width=8) (actual time=0.001..0.001 rows=1 loops=30)
+                    Index Cond: (idcliente = comprobante.idcliente)
+                    Heap Fetches: 0
+                    Buffers: shared hit=61
+        ->  Index Only Scan using pk_exportador on exportador e  (cost=0.28..2.54 rows=1 width=8) (actual time=0.000..0.000 rows=0 loops=30)
+              Index Cond: (idcliente = comprobante.idcliente)
+              Heap Fetches: 0
+              Buffers: shared hit=60
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.230 ms
+Execution Time: 0.118 ms
+(32 rows)
+
+S5
+QUERY PLAN
+Sort  (cost=6.07..6.08 rows=1 width=16) (actual time=0.012..0.013 rows=15 loops=1)
+  Sort Key: por_sala.idsalaventa
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  CTE por_sala
+    ->  Hash Left Join  (cost=4.18..5.38 rows=15 width=16) (actual time=0.004..0.006 rows=15 loops=1)
+          Hash Cond: (s.idsalaventa = p.idsalaventa)
+          Buffers: shared hit=2
+          ->  Seq Scan on sala_venta s  (cost=0.00..1.15 rows=15 width=8) (actual time=0.001..0.002 rows=15 loops=1)
+                Buffers: shared hit=1
+          ->  Hash  (cost=4.17..4.17 rows=1 width=16) (actual time=0.001..0.001 rows=0 loops=1)
+                Buckets: 1024  Batches: 1  Memory Usage: 8kB
+                Buffers: shared hit=1
+                ->  Subquery Scan on p  (cost=0.12..4.17 rows=1 width=16) (actual time=0.001..0.001 rows=0 loops=1)
+                      Buffers: shared hit=1
+                      ->  GroupAggregate  (cost=0.12..4.16 rows=1 width=16) (actual time=0.001..0.001 rows=0 loops=1)
+                            Group Key: transferencia.idsalaventa
+                            Buffers: shared hit=1
+                            ->  Index Only Scan using idx_transferencia_pendiente_sala on transferencia  (cost=0.12..4.14 rows=1 width=8) (actual time=0.001..0.001 rows=0 loops=1)
+                                  Heap Fetches: 0
+                                  Buffers: shared hit=1
+  InitPlan 2 (returns $1)
+    ->  Aggregate  (cost=0.34..0.35 rows=1 width=8) (actual time=0.004..0.005 rows=1 loops=1)
+          ->  CTE Scan on por_sala por_sala_1  (cost=0.00..0.30 rows=15 width=8) (actual time=0.000..0.003 rows=15 loops=1)
+  ->  CTE Scan on por_sala  (cost=0.00..0.34 rows=1 width=16) (actual time=0.010..0.010 rows=15 loops=1)
+        Filter: (cantidad = $1)
+        Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.059 ms
+Execution Time: 0.022 ms
+(31 rows)
+
+S8
+QUERY PLAN
+Sort  (cost=1267.04..1267.08 rows=15 width=40) (actual time=3.287..3.288 rows=15 loops=1)
+  Sort Key: (sum(total)) DESC, idsalaventa
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=8231
+  ->  HashAggregate  (cost=1266.56..1266.75 rows=15 width=40) (actual time=3.276..3.278 rows=15 loops=1)
+        Group Key: idsalaventa
+        Batches: 1  Memory Usage: 24kB
+        Buffers: shared hit=8228
+        ->  Index Only Scan using idx_comprobante_fecha_ventas on comprobante  (cost=0.43..1220.81 rows=9149 width=14) (actual time=0.019..2.596 rows=8436 loops=1)
+              Index Cond: ((fecha >= (CURRENT_DATE - '3 mons'::interval)) AND (fecha <= CURRENT_DATE))
+              Heap Fetches: 8436
+              Buffers: shared hit=8228
+Planning:
+  Buffers: shared hit=39
+Planning Time: 0.054 ms
+Execution Time: 3.297 ms
+(16 rows)
+
+S9
+QUERY PLAN
+Nested Loop Left Join  (cost=16.59..151.73 rows=1 width=125) (actual time=0.161..0.170 rows=1 loops=1)
+  Buffers: shared hit=80
+  ->  Nested Loop Left Join  (cost=7.10..142.22 rows=1 width=85) (actual time=0.153..0.162 rows=1 loops=1)
+        Buffers: shared hit=76
+        ->  Nested Loop Left Join  (cost=0.15..135.25 rows=1 width=53) (actual time=0.128..0.136 rows=1 loops=1)
+              Buffers: shared hit=70
+              ->  Nested Loop Left Join  (cost=0.15..20.93 rows=1 width=53) (actual time=0.015..0.023 rows=1 loops=1)
+                    Buffers: shared hit=12
+                    ->  Nested Loop  (cost=0.15..13.15 rows=1 width=45) (actual time=0.004..0.012 rows=1 loops=1)
+                          Buffers: shared hit=8
+                          ->  Nested Loop  (cost=0.00..8.97 rows=1 width=37) (actual time=0.003..0.010 rows=1 loops=1)
+                                Join Filter: ((b.cuit)::text = (v.cuitbodega)::text)
+                                Buffers: shared hit=5
+                                ->  Seq Scan on vino v  (cost=0.00..7.75 rows=1 width=34) (actual time=0.002..0.009 rows=1 loops=1)
+                                      Filter: (codigovino = 1)
+                                      Rows Removed by Filter: 299
+                                      Buffers: shared hit=4
+                                ->  Seq Scan on bodega b  (cost=0.00..1.10 rows=10 width=27) (actual time=0.001..0.001 rows=1 loops=1)
+                                      Buffers: shared hit=1
+                          ->  Index Only Scan using pk_vino on vino v_1  (cost=0.15..4.17 rows=1 width=8) (actual time=0.001..0.001 rows=1 loops=1)
+                                Index Cond: (codigovino = 1)
+                                Heap Fetches: 1
+                                Buffers: shared hit=3
+                    ->  GroupAggregate  (cost=0.00..7.76 rows=1 width=16) (actual time=0.010..0.010 rows=1 loops=1)
+                          Buffers: shared hit=4
+                          ->  Seq Scan on almacena  (cost=0.00..7.75 rows=1 width=12) (actual time=0.005..0.009 rows=1 loops=1)
+                                Filter: (codigovino = 1)
+                                Rows Removed by Filter: 299
+                                Buffers: shared hit=4
+              ->  GroupAggregate  (cost=0.00..114.30 rows=1 width=16) (actual time=0.113..0.114 rows=1 loops=1)
+                    Buffers: shared hit=58
+                    ->  Seq Scan on posee  (cost=0.00..114.25 rows=15 width=12) (actual time=0.022..0.112 rows=15 loops=1)
+                          Filter: (codigovino = 1)
+                          Rows Removed by Filter: 4485
+                          Buffers: shared hit=58
+        ->  Aggregate  (cost=6.95..6.96 rows=1 width=32) (actual time=0.024..0.024 rows=1 loops=1)
+              Buffers: shared hit=6
+              ->  Sort  (cost=6.94..6.94 rows=1 width=23) (actual time=0.017..0.018 rows=1 loops=1)
+                    Sort Key: ce.nombre, ce.idcepa
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=6
+                    ->  Hash Join  (cost=5.76..6.93 rows=1 width=23) (actual time=0.011..0.013 rows=1 loops=1)
+                          Hash Cond: (ce.idcepa = co.idcepa)
+                          Buffers: shared hit=3
+                          ->  Seq Scan on cepa ce  (cost=0.00..1.12 rows=12 width=18) (actual time=0.002..0.002 rows=12 loops=1)
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=5.75..5.75 rows=1 width=13) (actual time=0.008..0.009 rows=1 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=2
+                                ->  Seq Scan on componen co  (cost=0.00..5.75 rows=1 width=13) (actual time=0.002..0.008 rows=1 loops=1)
+                                      Filter: (codigovino = v.codigovino)
+                                      Rows Removed by Filter: 299
+                                      Buffers: shared hit=2
+  ->  Aggregate  (cost=9.49..9.50 rows=1 width=32) (actual time=0.007..0.008 rows=1 loops=1)
+        Buffers: shared hit=4
+        ->  Sort  (cost=9.48..9.49 rows=1 width=23) (actual time=0.006..0.007 rows=1 loops=1)
+              Sort Key: ma.nombre, ma.idmaridaje
+              Sort Method: quicksort  Memory: 25kB
+              Buffers: shared hit=4
+              ->  Nested Loop  (cost=0.27..9.47 rows=1 width=23) (actual time=0.005..0.006 rows=1 loops=1)
+                    Join Filter: (t.idmaridaje = ma.idmaridaje)
+                    Buffers: shared hit=4
+                    ->  Index Only Scan using pk_tienen on tienen t  (cost=0.27..8.29 rows=1 width=8) (actual time=0.004..0.004 rows=1 loops=1)
+                          Index Cond: (codigovino = v.codigovino)
+                          Heap Fetches: 0
+                          Buffers: shared hit=3
+                    ->  Seq Scan on maridaje ma  (cost=0.00..1.08 rows=8 width=23) (actual time=0.001..0.001 rows=1 loops=1)
+                          Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=247
+Planning Time: 0.308 ms
+Execution Time: 0.188 ms
+(72 rows)
+
+S10
+QUERY PLAN
+Sort  (cost=225433.07..225440.57 rows=3000 width=79) (actual time=275.659..275.736 rows=3000 loops=1)
+  Sort Key: r.idfinca, r.campania, r.numeroparcela
+  Sort Method: quicksort  Memory: 261kB
+  Buffers: shared hit=40
+  CTE rendimiento
+    ->  Hash Join  (cost=20.00..102.31 rows=3000 width=46) (actual time=5.205..5.868 rows=3000 loops=1)
+          Hash Cond: ((l.idfinca = p.idfinca) AND (l.numeroparcela = p.numeroparcela))
+          Buffers: shared hit=34
+          ->  Seq Scan on lote l  (cost=0.00..59.00 rows=3000 width=20) (actual time=0.005..0.113 rows=3000 loops=1)
+                Buffers: shared hit=29
+          ->  Hash  (cost=11.00..11.00 rows=600 width=17) (actual time=5.192..5.193 rows=600 loops=1)
+                Buckets: 1024  Batches: 1  Memory Usage: 37kB
+                Buffers: shared hit=5
+                ->  Seq Scan on parcela p  (cost=0.00..11.00 rows=600 width=17) (actual time=5.126..5.152 rows=600 loops=1)
+                      Buffers: shared hit=5
+  ->  Nested Loop  (cost=75.00..225157.50 rows=3000 width=79) (actual time=6.167..275.047 rows=3000 loops=1)
+        Buffers: shared hit=34
+        ->  CTE Scan on rendimiento r  (cost=0.00..60.00 rows=3000 width=46) (actual time=5.206..5.426 rows=3000 loops=1)
+              Buffers: shared hit=6
+        ->  Aggregate  (cost=75.00..75.02 rows=1 width=32) (actual time=0.090..0.090 rows=1 loops=3000)
+              Buffers: shared hit=28
+              ->  CTE Scan on rendimiento otra  (cost=0.00..75.00 rows=1 width=32) (actual time=0.044..0.089 rows=10 loops=3000)
+                    Filter: ((idfinca = r.idfinca) AND (campania = r.campania))
+                    Rows Removed by Filter: 2990
+                    Buffers: shared hit=28
+Planning:
+  Buffers: shared hit=107
+Planning Time: 0.121 ms
+JIT:
+  Functions: 21
+  Options: Inlining false, Optimization false, Expressions true, Deforming true
+  Timing: Generation 0.297 ms, Inlining 0.000 ms, Optimization 0.206 ms, Emission 4.926 ms, Total 5.430 ms
+Execution Time: 283.401 ms
+(33 rows)
+
+S11a
+QUERY PLAN
+Incremental Sort  (cost=19448.88..19699.24 rows=4500 width=46) (actual time=76.277..79.138 rows=4500 loops=1)
+  Sort Key: c.idsalaventa, (rank() OVER (?)), r.codigovino
+  Presorted Key: c.idsalaventa
+  Full-sort Groups: 15  Sort Method: quicksort  Average Memory: 29kB  Peak Memory: 29kB
+  Pre-sorted Groups: 15  Sort Method: quicksort  Average Memory: 46kB  Peak Memory: 46kB
+  Buffers: shared hit=7624 read=3813
+  ->  WindowAgg  (cost=19447.92..19537.92 rows=4500 width=46) (actual time=76.154..78.323 rows=4500 loops=1)
+        Buffers: shared hit=7624 read=3813
+        ->  Sort  (cost=19447.92..19459.17 rows=4500 width=38) (actual time=76.150..77.509 rows=4500 loops=1)
+              Sort Key: c.idsalaventa, (sum(r.cantidad)) DESC
+              Sort Method: quicksort  Memory: 474kB
+              Buffers: shared hit=7624 read=3813
+              ->  Hash Join  (cost=19117.89..19174.87 rows=4500 width=38) (actual time=74.399..76.371 rows=4500 loops=1)
+                    Hash Cond: (r.codigovino = v.codigovino)
+                    Buffers: shared hit=7624 read=3813
+                    ->  Finalize HashAggregate  (cost=19107.14..19152.14 rows=4500 width=24) (actual time=74.362..75.875 rows=4500 loops=1)
+                          Group Key: c.idsalaventa, r.codigovino
+                          Batches: 1  Memory Usage: 721kB
+                          Buffers: shared hit=7620 read=3813
+                          ->  Gather  (cost=18094.64..19039.64 rows=9000 width=24) (actual time=71.508..73.860 rows=13500 loops=1)
+                                Workers Planned: 2
+                                Workers Launched: 2
+                                Buffers: shared hit=7620 read=3813
+                                ->  Partial HashAggregate  (cost=17094.64..17139.64 rows=4500 width=24) (actual time=63.901..64.372 rows=4500 loops=3)
+                                      Group Key: c.idsalaventa, r.codigovino
+                                      Batches: 1  Memory Usage: 721kB
+                                      Buffers: shared hit=7620 read=3813
+                                      Worker 0:  Batches: 1  Memory Usage: 721kB
+                                      Worker 1:  Batches: 1  Memory Usage: 721kB
+                                      ->  Parallel Hash Join  (cost=4567.92..15532.14 rows=208333 width=20) (actual time=13.087..45.343 rows=166667 loops=3)
+                                            Hash Cond: (r.numerocomprobante = c.numero)
+                                            Buffers: shared hit=7620 read=3813
+                                            ->  Parallel Seq Scan on renglon_comprobante r  (cost=0.00..10417.33 rows=208333 width=20) (actual time=2.650..10.347 rows=166667 loops=3)
+                                                  Buffers: shared hit=4521 read=3813
+                                            ->  Parallel Hash  (cost=3748.52..3748.52 rows=65552 width=16) (actual time=10.044..10.044 rows=50000 loops=3)
+                                                  Buckets: 262144  Batches: 1  Memory Usage: 9152kB
+                                                  Buffers: shared hit=3093
+                                                  ->  Parallel Seq Scan on comprobante c  (cost=0.00..3748.52 rows=65552 width=16) (actual time=0.858..3.993 rows=50000 loops=3)
+                                                        Buffers: shared hit=3093
+                    ->  Hash  (cost=7.00..7.00 rows=300 width=22) (actual time=0.035..0.035 rows=300 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 25kB
+                          Buffers: shared hit=4
+                          ->  Seq Scan on vino v  (cost=0.00..7.00 rows=300 width=22) (actual time=0.004..0.020 rows=300 loops=1)
+                                Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=18
+Planning Time: 0.180 ms
+Execution Time: 79.271 ms
+(48 rows)
+
+S11b
+QUERY PLAN
+WindowAgg  (cost=8594.72..8909.36 rows=15732 width=76) (actual time=41.246..41.461 rows=810 loops=1)
+  Buffers: shared hit=3096
+  ->  Sort  (cost=8594.72..8634.05 rows=15732 width=44) (actual time=41.243..41.263 rows=810 loops=1)
+        Sort Key: vw_ventas_mensuales_sala.idsalaventa, vw_ventas_mensuales_sala.mes
+        Sort Method: quicksort  Memory: 62kB
+        Buffers: shared hit=3096
+        ->  Subquery Scan on vw_ventas_mensuales_sala  (cost=7026.12..7498.08 rows=15732 width=44) (actual time=40.917..41.119 rows=810 loops=1)
+              Buffers: shared hit=3093
+              ->  HashAggregate  (cost=7026.12..7340.76 rows=15732 width=52) (actual time=40.916..41.078 rows=810 loops=1)
+                    Group Key: c.idsalaventa, (date_trunc('month'::text, (c.fecha)::timestamp with time zone))::date
+                    Batches: 1  Memory Usage: 1297kB
+                    Buffers: shared hit=3093
+                    ->  Seq Scan on comprobante c  (cost=0.00..5846.19 rows=157325 width=18) (actual time=0.726..26.447 rows=150000 loops=1)
+                          Buffers: shared hit=3093
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.082 ms
+Execution Time: 41.506 ms
+(18 rows)
+
+S12a
+QUERY PLAN
+Result  (cost=12482.07..15531.46 rows=1 width=8) (actual time=43.219..43.223 rows=0 loops=1)
+  One-Time Filter: $2
+  Buffers: shared hit=3439
+  CTE bodega_elegida
+    ->  Seq Scan on bodega  (cost=0.00..1.12 rows=1 width=12) (actual time=0.003..0.004 rows=1 loops=1)
+          Filter: ((cuit)::text = '30000000000'::text)
+          Rows Removed by Filter: 9
+          Buffers: shared hit=1
+  CTE catalogo
+    ->  Hash Join  (cost=0.03..8.46 rows=30 width=8) (actual time=0.007..0.048 rows=30 loops=1)
+          Hash Cond: ((v_2.cuitbodega)::text = (b.cuit)::text)
+          Buffers: shared hit=4
+          ->  Seq Scan on vino v_2  (cost=0.00..7.00 rows=300 width=20) (actual time=0.002..0.016 rows=300 loops=1)
+                Buffers: shared hit=4
+          ->  Hash  (cost=0.02..0.02 rows=1 width=32) (actual time=0.002..0.003 rows=1 loops=1)
+                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                ->  CTE Scan on bodega_elegida b  (cost=0.00..0.02 rows=1 width=32) (actual time=0.000..0.001 rows=1 loops=1)
+  InitPlan 3 (returns $2)
+    ->  CTE Scan on bodega_elegida  (cost=0.00..0.02 rows=1 width=0) (actual time=0.003..0.003 rows=1 loops=1)
+          Buffers: shared hit=1
+  ->  Nested Loop Anti Join  (cost=12482.07..15531.46 rows=1 width=8) (actual time=43.215..43.216 rows=0 loops=1)
+        Join Filter: (v.codigovino <> ALL (COALESCE((array_agg(DISTINCT r.codigovino)), '{}'::bigint[])))
+        Rows Removed by Join Filter: 1778
+        Buffers: shared hit=3438
+        ->  Merge Left Join  (cost=12472.47..14151.54 rows=20745 width=40) (actual time=31.214..40.892 rows=20000 loops=1)
+              Merge Cond: (cl.idcliente = c.idcliente)
+              Buffers: shared hit=3438
+              ->  Index Only Scan using pk_cliente on cliente cl  (cost=0.29..528.29 rows=20000 width=8) (actual time=0.013..0.824 rows=20000 loops=1)
+                    Heap Fetches: 0
+                    Buffers: shared hit=57
+              ->  GroupAggregate  (cost=12472.18..13106.49 rows=20745 width=40) (actual time=31.199..38.055 rows=18555 loops=1)
+                    Group Key: c.idcliente
+                    Buffers: shared hit=3381
+                    ->  Sort  (cost=12472.18..12597.18 rows=50000 width=16) (actual time=31.193..32.565 rows=50330 loops=1)
+                          Sort Key: c.idcliente, r.codigovino
+                          Sort Method: quicksort  Memory: 3502kB
+                          Buffers: shared hit=3381
+                          ->  Hash Join  (cost=2813.55..8569.77 rows=50000 width=16) (actual time=8.357..24.791 rows=50330 loops=1)
+                                Hash Cond: (c.numero = r.numerocomprobante)
+                                Buffers: shared hit=3381
+                                ->  Seq Scan on comprobante c  (cost=0.00..4666.25 rows=157325 width=16) (actual time=0.637..6.444 rows=150000 loops=1)
+                                      Buffers: shared hit=3093
+                                ->  Hash  (cost=2188.55..2188.55 rows=50000 width=16) (actual time=7.713..7.713 rows=50330 loops=1)
+                                      Buckets: 65536  Batches: 1  Memory Usage: 2872kB
+                                      Buffers: shared hit=288
+                                      ->  Nested Loop  (cost=0.42..2188.55 rows=50000 width=16) (actual time=0.026..4.706 rows=50330 loops=1)
+                                            Buffers: shared hit=288
+                                            ->  CTE Scan on catalogo v_1  (cost=0.00..0.60 rows=30 width=8) (actual time=0.008..0.052 rows=30 loops=1)
+                                                  Buffers: shared hit=4
+                                            ->  Index Only Scan using idx_renglon_comprobante_vino on renglon_comprobante r  (cost=0.42..56.26 rows=1667 width=16) (actual time=0.003..0.077 rows=1678 loops=30)
+                                                  Index Cond: (codigovino = v_1.codigovino)
+                                                  Heap Fetches: 0
+                                                  Buffers: shared hit=284
+        ->  CTE Scan on catalogo v  (cost=0.00..0.60 rows=30 width=8) (actual time=0.000..0.000 rows=1 loops=20000)
+Planning:
+  Buffers: shared hit=74
+Planning Time: 0.263 ms
+Execution Time: 43.459 ms
+(58 rows)
+
+S12b
+QUERY PLAN
+Sort  (cost=15895.39..15895.40 rows=1 width=8) (actual time=47.576..47.578 rows=22 loops=1)
+  Sort Key: cl.idcliente
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=3860
+  ->  Hash Right Anti Join  (cost=7670.41..15895.38 rows=1 width=8) (actual time=47.404..47.573 rows=22 loops=1)
+        Hash Cond: (c.idcliente = cl.idcliente)
+        Buffers: shared hit=3860
+        ->  Hash Join  (cost=6892.12..13398.34 rows=125000 width=8) (actual time=18.317..39.303 rows=124915 loops=1)
+              Hash Cond: (c.numero = r.numerocomprobante)
+              Buffers: shared hit=3803
+              ->  Seq Scan on comprobante c  (cost=0.00..4666.25 rows=157325 width=16) (actual time=0.595..6.469 rows=150000 loops=1)
+                    Buffers: shared hit=3093
+              ->  Hash  (cost=5329.62..5329.62 rows=125000 width=8) (actual time=17.713..17.714 rows=124915 loops=1)
+                    Buckets: 131072  Batches: 1  Memory Usage: 5904kB
+                    Buffers: shared hit=710
+                    ->  Nested Loop  (cost=0.42..5329.62 rows=125000 width=8) (actual time=0.007..11.648 rows=124915 loops=1)
+                          Buffers: shared hit=710
+                          ->  Seq Scan on vino v  (cost=0.00..7.75 rows=75 width=8) (actual time=0.002..0.026 rows=75 loops=1)
+                                Filter: ((tipo)::text = 'tinto'::text)
+                                Rows Removed by Filter: 225
+                                Buffers: shared hit=4
+                          ->  Index Only Scan using idx_renglon_comprobante_vino on renglon_comprobante r  (cost=0.42..54.29 rows=1667 width=16) (actual time=0.002..0.072 rows=1666 loops=75)
+                                Index Cond: (codigovino = v.codigovino)
+                                Heap Fetches: 0
+                                Buffers: shared hit=706
+        ->  Hash  (cost=528.29..528.29 rows=20000 width=8) (actual time=1.535..1.535 rows=20000 loops=1)
+              Buckets: 32768  Batches: 1  Memory Usage: 1038kB
+              Buffers: shared hit=57
+              ->  Index Only Scan using pk_cliente on cliente cl  (cost=0.29..528.29 rows=20000 width=8) (actual time=0.002..0.702 rows=20000 loops=1)
+                    Heap Fetches: 0
+                    Buffers: shared hit=57
+Planning:
+  Buffers: shared hit=55
+Planning Time: 0.213 ms
+Execution Time: 47.786 ms
+(35 rows)

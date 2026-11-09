@@ -1,0 +1,80 @@
+D1
+BEGIN
+SELECT 0
+CREATE VIEW
+fase|comprobantes|renglones|botellas_en_salas
+antes|0|0|44001320
+(1 row)
+DELETE 0
+DELETE 0
+fase|comprobantes|renglones|botellas_en_salas
+después|0|0|44001320
+(1 row)
+ROLLBACK
+D2
+BEGIN
+CREATE VIEW
+fase|cepas_sin_uso
+antes|0
+(1 row)
+idcepa|nombre
+(0 rows)
+DELETE 0
+fase|cepas_sin_uso
+después|0
+(1 row)
+ROLLBACK
+D3
+BEGIN
+SELECT 0
+fase|empleados
+antes|0
+(1 row)
+cuit|idsalaventa
+(0 rows)
+DELETE 0
+fase|empleados
+después|0
+(1 row)
+ROLLBACK
+D4
+BEGIN
+SELECT 0
+CREATE VIEW
+fase|clientes|socios
+antes|0|0
+(1 row)
+DELETE 0
+DELETE 0
+SET CONSTRAINTS
+fase|clientes|socios
+después|0|0
+(1 row)
+ROLLBACK
+D5
+BEGIN
+SELECT 600
+CREATE VIEW
+fase|ingresos|renglones|botellas_en_deposito
+antes|600|6000|15000000
+(1 row)
+NOTICE:  D5: RN-12 bloqueó el borrado. Ingresos y renglones borrados: 0
+DO
+fase|ingresos|renglones|botellas_en_deposito
+después|600|6000|15000000
+(1 row)
+ROLLBACK
+D6
+BEGIN
+SELECT 0
+CREATE VIEW
+fase|clientes|socios
+antes|0|0
+(1 row)
+DELETE 0
+DELETE 0
+SET CONSTRAINTS
+fase|clientes|socios
+después|0|0
+(1 row)
+ROLLBACK

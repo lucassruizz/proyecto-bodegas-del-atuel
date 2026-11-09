@@ -1,0 +1,119 @@
+U1
+BEGIN
+SELECT 20000
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+fase|comprobantes|monto_total|encabezados_inconsistentes|renglones_inconsistentes
+antes|150000|5196342157.00|0|0
+(1 row)
+UPDATE 0
+UPDATE 150000
+fase|comprobantes|monto_total|encabezados_inconsistentes|renglones_inconsistentes
+después|150000|5196342157.00|0|0
+(1 row)
+ROLLBACK
+U2
+BEGIN
+CREATE VIEW
+fase|empleados|salarios
+antes|90|85005000.00
+(1 row)
+UPDATE 90
+fase|empleados|salarios
+después|90|102006000.00
+(1 row)
+ROLLBACK
+U3
+BEGIN
+CREATE VIEW
+CREATE VIEW
+fase|vinos|precios|auditorias
+antes|30|193800.00|30
+(1 row)
+UPDATE 30
+fase|vinos|precios|auditorias
+después|30|218994.00|60
+(1 row)
+ROLLBACK
+U4
+BEGIN
+fase|idsalaventa|diacierresemanal
+antes|1|lunes
+antes|2|miercoles
+antes|3|domingo
+antes|4|lunes
+antes|5|miercoles
+antes|6|domingo
+antes|7|lunes
+antes|8|miercoles
+antes|9|domingo
+antes|10|lunes
+antes|11|miercoles
+antes|12|domingo
+antes|13|lunes
+antes|14|miercoles
+antes|15|domingo
+(15 rows)
+UPDATE 10
+fase|idsalaventa|diacierresemanal
+después|1|miercoles
+después|2|lunes
+después|3|domingo
+después|4|miercoles
+después|5|lunes
+después|6|domingo
+después|7|miercoles
+después|8|lunes
+después|9|domingo
+después|10|miercoles
+después|11|lunes
+después|12|domingo
+después|13|miercoles
+después|14|lunes
+después|15|domingo
+(15 rows)
+ROLLBACK
+U5
+BEGIN
+SELECT 10
+CREATE VIEW
+fase|codigovino|botellas|precio|auditorias
+antes|160|3111|6600.00|1
+antes|111|3136|6110.00|1
+antes|65|3147|5650.00|1
+antes|36|3149|5360.00|1
+antes|94|3156|5940.00|1
+antes|189|3160|6890.00|1
+antes|241|3163|7410.00|1
+antes|114|3167|6140.00|1
+antes|200|3174|7000.00|1
+antes|299|3174|7990.00|1
+(10 rows)
+UPDATE 10
+fase|codigovino|botellas|precio|auditorias
+después|160|3111|5610.00|2
+después|111|3136|5193.50|2
+después|65|3147|4802.50|2
+después|36|3149|4556.00|2
+después|94|3156|5049.00|2
+después|189|3160|5856.50|2
+después|241|3163|6298.50|2
+después|114|3167|5219.00|2
+después|200|3174|5950.00|2
+después|299|3174|6791.50|2
+(10 rows)
+ROLLBACK
+U6
+BEGIN
+CREATE VIEW
+CREATE VIEW
+fase|candidatos|minimo|maximo
+antes|1666|30.00|30.00
+(1 row)
+NOTICE:  U6: ck_cliente_descuento rechazó el 35 %. Filas actualizadas: 0
+DO
+fase|candidatos|minimo|maximo
+después|1666|30.00|30.00
+(1 row)
+ROLLBACK
