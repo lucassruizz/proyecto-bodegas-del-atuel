@@ -21,7 +21,7 @@ from faker import Faker
 SEMILLA = 2026
 FECHA_BASE = date(2026, 11, 7)  # Fija: no depende del día de ejecución.
 RUTA_BASE = Path(__file__).resolve().parent
-RUTA_CATALOGOS = RUTA_BASE / "seed" / "csv"
+RUTA_CATALOGOS = RUTA_BASE / "csv"
 TAMANO_LOTE = 2000
 TABLAS_A_CONTROLAR = tuple("localidad encargado_regional sala_venta empleado departamento finca cepa parcela bodega lote analisis_calidad vino componen maridaje tienen auditoria_precio cliente socio_club distribuidor exportador permisos comprobante renglon_comprobante empresas_transporte alcanza deposito almacena posee ingresos contiene transferencia incluye".split())
 

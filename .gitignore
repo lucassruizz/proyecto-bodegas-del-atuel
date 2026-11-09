@@ -9,3 +9,7 @@
 *.log
 Thumbs.db
 .DS_Store
+
+.venv/
+__pycache__/
+/db/seed/reporte_carga.json

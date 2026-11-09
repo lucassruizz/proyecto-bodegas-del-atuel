@@ -26,11 +26,43 @@ REVOKE ALL ON ALL PROCEDURES IN SCHEMA public FROM PUBLIC;
 
 GRANT USAGE, CREATE ON SCHEMA public TO bodega_owner;
 
--- Reasigna a bodega_owner los objetos creados previamente por el usuario ejecutor.
--- REASSIGN OWNED requiere permisos de administrador/propietario de los roles implicados.
-REASSIGN OWNED BY CURRENT_USER TO bodega_owner;
+-- Transfiere los objetos del proyecto en public sin tocar objetos del sistema.
+-- Las secuencias identity cambian de dueño junto con sus tablas.
+DO $$
+DECLARE
+    objeto text;
+BEGIN
+    FOR objeto IN
+        SELECT format('%s %I.%I',
+            CASE c.relkind WHEN 'v' THEN 'VIEW' ELSE 'TABLE' END,
+            n.nspname, c.relname)
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind IN ('r', 'v')
+          AND c.relowner = current_user::regrole
+        UNION ALL
+        SELECT format('ROUTINE %I.%I(%s)',
+            n.nspname, p.proname, pg_get_function_identity_arguments(p.oid))
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.prokind IN ('f', 'p')
+          AND p.proowner = current_user::regrole
+        UNION ALL
+        SELECT format('%s %I.%I',
+            CASE t.typtype WHEN 'd' THEN 'DOMAIN' ELSE 'TYPE' END,
+            n.nspname, t.typname)
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE n.nspname = 'public' AND t.typtype IN ('d', 'e')
+          AND t.typowner = current_user::regrole
+    LOOP
+        EXECUTE format('ALTER %s OWNER TO bodega_owner', objeto);
+    END LOOP;
+END;
+$$;
 
 -- Permisos sobre objetos que ya existen.
+GRANT USAGE ON SCHEMA public TO bodega_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO bodega_api;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO bodega_api;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO bodega_api;

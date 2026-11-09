@@ -131,17 +131,17 @@ done
 
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r CargaMasiva/carga_masiva_completa/requirements.txt
+python -m pip install -r db/seed/requirements.txt
 
 DB_HOST="$PGHOST" DB_PORT="$PGPORT" DB_NAME="$PGDATABASE" \
   DB_USER="$PGUSER" DB_PASSWORD="$PGPASSWORD" \
-  python CargaMasiva/carga_masiva_completa/008_carga_masiva.py || exit 1
+  python db/seed/008_carga_masiva.py || exit 1
 
 python db/rendimiento/medir.py mediciones-etapa-4
 ```
 
 El cargador escribe su reporte de tiempos y controles junto al script. Para
-Windows, su [guía de carga](../../CargaMasiva/carga_masiva_completa/README_carga.md)
+Windows, su [guía de carga](../etapa-3/README.md)
 incluye los comandos de PowerShell. La migración 007 se reserva para la
 configuración de permisos. La medición usa al propietario de la base local,
 porque necesita cargar el historial, crear índices y preparar tablas de prueba.

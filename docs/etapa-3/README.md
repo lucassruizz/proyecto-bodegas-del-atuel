@@ -1,28 +1,29 @@
 # Carga masiva — Bodegas del Atuel
 
-Este paquete completa `008_carga_masiva.py`
+El [script de carga](../../db/seed/008_carga_masiva.py) usa los [catálogos CSV](../../db/seed/csv).
+El [reporte original](reporte_carga.json) y su [verificación](verificacion.json)
+documentan la ejecución de la etapa 3.
 
 ## Ejecución (PowerShell)
 
 Usar Python 3.10 o superior y PostgreSQL 14 o superior. Crear una base de prueba
-vacía y ejecutar las migraciones 001 a 005 de etapa-2 en orden. Ejecutar el cargador
+vacía y ejecutar las migraciones 001 a 005 en orden. Ejecutar el cargador
 como propietario de las tablas. No usar una base con datos del grupo: el script
 se detiene si encuentra cualquier tabla del proyecto con filas.
 
-Mantener juntos el script y la carpeta `seed/csv`. Si se lo ubica en `db/seed/`,
-ajustar `RUTA_CATALOGOS` a `RUTA_BASE / "csv"` y poner allí los CSV.
+Ejecutar los comandos desde la raíz del repositorio.
 
 ```powershell
-py -m pip install -r requirements.txt
+py -m pip install -r db/seed/requirements.txt
 $env:DB_HOST = 'localhost'
 $env:DB_PORT = '5432'
 $env:DB_NAME = 'bodegas_prueba'
 $env:DB_USER = 'propietario_de_la_base'
 $env:DB_PASSWORD = Read-Host 'Contraseña'
-py -X utf8 008_carga_masiva.py
+py -X utf8 db/seed/008_carga_masiva.py
 ```
 
-Se genera `reporte_carga.json` al confirmar la transacción, con conteos y tiempos
+Se genera `db/seed/reporte_carga.json` al confirmar la transacción, con conteos y tiempos
 reales. La comparación usa 2.000 filas idénticas en una tabla temporal: inserciones
 individuales contra `executemany`, sin alterar los datos de negocio. La carga
 principal usa COPY para las tablas grandes y RETURNING para obtener las claves
