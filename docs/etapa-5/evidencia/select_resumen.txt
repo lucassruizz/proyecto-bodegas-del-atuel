@@ -1,0 +1,19 @@
+Consulta | Filas del resultado | Execution Time (ms)
+S1 | 10 | 27.503
+S2 | 300 | —
+S3 | 1 | 0.118
+socios|distribuidores|exportadores
+0|30|0
+S4 | 0 | —
+S5 | 15 | 0.022
+S6 | 0 | —
+S7 | 0 | —
+S8 | 15 | 3.297
+S9 | 1 | 0.188
+codigovino|nombre|bodega|cepas|maridajes|stock_deposito|stock_salas|stock_total
+1|Vino Atuel 1|Bodega Atuel 0|[{"cepa": "Malbec", "porcentaje": 100.00}]|["Carnes rojas"]|50000|146579|196579
+S10 | 3000 | 283.401
+S11a | 4500 | 79.271
+S11b | 810 | 41.506
+S12a | 0 | 43.459
+S12b | 22 | 47.786

@@ -1,0 +1,11 @@
+Comparación SHA-256 de los bloques COPY de las 32 tablas públicas.
+Se excluyen metadatos y contadores de secuencias.
+bodegas
+Antes   78b896eba3600bcc75ddb7659a41e53424a7a66f57938693ac04e42fc9b5fd5f
+Después 78b896eba3600bcc75ddb7659a41e53424a7a66f57938693ac04e42fc9b5fd5f
+Contenido idéntico.
+
+bodegas_etapa5_pruebas
+Antes   c1268298ca6b556e9667058bb98396c411294579250d26f4a59d3825defb7b22
+Después c1268298ca6b556e9667058bb98396c411294579250d26f4a59d3825defb7b22
+Contenido idéntico.

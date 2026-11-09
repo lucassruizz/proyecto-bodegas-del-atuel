@@ -1,0 +1,86 @@
+I1
+BEGIN
+SELECT 1
+CREATE VIEW
+fase|codigotransporte|idlocalidad|envios|cobertura
+antes|1|2|0|f
+(1 row)
+INSERT 0 1
+fase|codigotransporte|idlocalidad|envios|cobertura
+después|1|2|0|t
+(1 row)
+ROLLBACK
+I2
+BEGIN
+LOCK TABLE
+CREATE VIEW
+CREATE VIEW
+fase|vinos_elegibles|maridajes|asociaciones
+antes|75|0|0
+(1 row)
+INSERT 0 1
+INSERT 0 75
+fase|vinos_elegibles|maridajes|asociaciones
+después|75|1|75
+(1 row)
+ROLLBACK
+I3
+BEGIN
+fase|comprobantes
+antes|0
+(1 row)
+fase|codigovino|stock
+antes|1|9795
+antes|2|9791
+antes|3|9781
+(3 rows)
+INSERT 0 1
+INSERT 0 3
+fase|numero|subtotal|descuento|total|total_calculado|renglones
+después|900001|30130.00|3013.00|27117.00|27117.00|3
+(1 row)
+fase|codigovino|stock
+después|1|9793
+después|2|9790
+después|3|9778
+(3 rows)
+ROLLBACK
+I4
+BEGIN
+fase|bodegas
+antes|0
+(1 row)
+INSERT 0 1
+fase|cuit|razonsocial|domicilio
+después|30999999999|Bodega de prueba etapa 5|Ruta 143, San Rafael
+(1 row)
+ROLLBACK
+I5
+BEGIN
+CREATE VIEW
+fase|salas
+antes|0
+(1 row)
+idsalaventa|idlocalidad
+17|2
+(1 row)
+INSERT 0 1
+fase|salas
+después|1
+(1 row)
+ROLLBACK
+I6
+BEGIN
+CREATE VIEW
+fase|ingresos|renglones|botellas
+antes|0|0|0
+(1 row)
+INSERT 0 1
+INSERT 0 1
+fase|ingresos|renglones|botellas
+después|1|1|120
+(1 row)
+estado|cuitbodega|codigotransporte
+en_confeccion|30000000000|1
+(1 row)
+ROLLBACK
