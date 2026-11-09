@@ -19,7 +19,7 @@ Trabajo práctico integrador de Bases de Datos de la UTN San Rafael, 2026.
 | 5. Consultas SQL | [Scripts de consultas](consultas/) e [informe con evidencia](docs/etapa-5/README.md) |
 | 6. API REST | [Arranque y pruebas](api/README.md), [guía de estudio](docs/etapa-6/README.md) y Swagger en `/docs` |
 
-La carpeta [`front/`](front/) está reservada para la etapa 7.
+La carpeta [`front/`](front/) contiene los bocetos del frontend de la etapa 7.
 
 ## Arranque local
 
