@@ -1,0 +1,255 @@
+{
+  "servidor": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "shared_buffers": "128MB",
+  "work_mem": "4MB",
+  "filas_dataset": {
+    "comprobante": 150000,
+    "renglon_comprobante": 500000
+  },
+  "repeticiones": 7,
+  "bytes_indices": {
+    "idx_comprobante_cliente": 1540096,
+    "idx_comprobante_fecha_ventas": 6103040,
+    "idx_comprobante_sala_fecha": 6111232,
+    "idx_renglon_comprobante_vino": 15794176,
+    "idx_transferencia_pendiente_sala": 8192
+  },
+  "bytes_indice_descartado": 24576,
+  "consultas": {
+    "S3": {
+      "antes": {
+        "ms": [
+          4.498,
+          4.099,
+          4.138,
+          3.954,
+          3.72,
+          3.914,
+          3.718
+        ],
+        "mediana_ms": 3.954,
+        "filas_resultado": 1
+      },
+      "despues": {
+        "ms": [
+          0.101,
+          0.098,
+          0.093,
+          0.083,
+          0.088,
+          0.09,
+          0.097
+        ],
+        "mediana_ms": 0.093,
+        "filas_resultado": 1
+      }
+    },
+    "S8": {
+      "antes": {
+        "ms": [
+          6.118,
+          6.149,
+          6.226,
+          6.251,
+          6.052,
+          5.846,
+          6.203
+        ],
+        "mediana_ms": 6.149,
+        "filas_resultado": 15
+      },
+      "despues": {
+        "ms": [
+          1.265,
+          1.347,
+          1.265,
+          1.24,
+          1.34,
+          1.821,
+          1.516
+        ],
+        "mediana_ms": 1.34,
+        "filas_resultado": 15
+      },
+      "descarte": {
+        "ms": [
+          7.31,
+          6.758,
+          7.777,
+          6.778,
+          7.263,
+          6.743,
+          7.053
+        ],
+        "mediana_ms": 7.053,
+        "filas_resultado": 15
+      }
+    },
+    "S12a": {
+      "antes": {
+        "ms": [
+          79.098,
+          77.396,
+          75.663,
+          74.311,
+          75.056,
+          74.93,
+          74.539
+        ],
+        "mediana_ms": 75.056,
+        "filas_resultado": 0
+      },
+      "despues": {
+        "ms": [
+          48.198,
+          59.63,
+          50.302,
+          45.673,
+          48.17,
+          44.844,
+          46.336
+        ],
+        "mediana_ms": 48.17,
+        "filas_resultado": 0
+      }
+    },
+    "S12b": {
+      "antes": {
+        "ms": [
+          88.727,
+          82.874,
+          84.641,
+          85.313,
+          91.019,
+          90.576,
+          86.843
+        ],
+        "mediana_ms": 86.843,
+        "filas_resultado": 22
+      },
+      "despues": {
+        "ms": [
+          66.966,
+          66.129,
+          73.819,
+          70.495,
+          61.111,
+          66.467,
+          55.643
+        ],
+        "mediana_ms": 66.467,
+        "filas_resultado": 22
+      }
+    },
+    "S5": {
+      "antes": {
+        "ms": [
+          0.046,
+          0.035,
+          0.033,
+          0.032,
+          0.033,
+          0.036,
+          0.032
+        ],
+        "mediana_ms": 0.033,
+        "filas_resultado": 15
+      },
+      "despues": {
+        "ms": [
+          0.018,
+          0.015,
+          0.02,
+          0.014,
+          0.013,
+          0.014,
+          0.013
+        ],
+        "mediana_ms": 0.014,
+        "filas_resultado": 15
+      }
+    },
+    "S1": {
+      "antes": {
+        "ms": [
+          58.024,
+          34.065,
+          35.677,
+          34.732,
+          34.013,
+          33.408,
+          33.834
+        ],
+        "mediana_ms": 34.065,
+        "filas_resultado": 10
+      },
+      "despues": {
+        "ms": [
+          41.796,
+          42.296,
+          40.602,
+          44.055,
+          57.907,
+          49.002,
+          43.074
+        ],
+        "mediana_ms": 43.074,
+        "filas_resultado": 10
+      }
+    }
+  },
+  "escritura": {
+    "comprobante": {
+      "antes": {
+        "ms": [
+          232.666,
+          179.446,
+          197.057,
+          208.709,
+          174.519,
+          242.088,
+          195.097
+        ],
+        "mediana_ms": 197.057
+      },
+      "despues": {
+        "ms": [
+          527.951,
+          498.575,
+          576.539,
+          633.391,
+          692.924,
+          1378.921,
+          554.673
+        ],
+        "mediana_ms": 576.539
+      }
+    },
+    "renglon_comprobante": {
+      "antes": {
+        "ms": [
+          606.028,
+          598.02,
+          529.06,
+          664.912,
+          662.596,
+          740.035,
+          674.371
+        ],
+        "mediana_ms": 662.596
+      },
+      "despues": {
+        "ms": [
+          1198.813,
+          1007.024,
+          1013.742,
+          1105.701,
+          3180.064,
+          1600.554,
+          1955.613
+        ],
+        "mediana_ms": 1198.813
+      }
+    }
+  }
+}
