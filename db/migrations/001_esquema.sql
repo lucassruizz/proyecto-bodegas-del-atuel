@@ -120,9 +120,6 @@ CREATE TABLE departamento(
     CONSTRAINT ck_departamento_nombre
         CHECK (btrim(nombreDepartamento) <> ''),
 
-    CONSTRAINT uq_nombre_departamento_provincia
-        UNIQUE (nombreDepartamento, provincia),
-
     CONSTRAINT ck_departamento_provincia
         CHECK (btrim(provincia) <> '')
 );
@@ -239,9 +236,6 @@ CREATE TABLE lote(
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
-    CONSTRAINT uq_idFInca_numero_parcela_campania
-        UNIQUE (idFinca, numeroParcela, campania),
-
     CONSTRAINT ck_lote_kilos_cosechados
         CHECK (kilosCosechados > 0),
 
@@ -262,7 +256,8 @@ CREATE TABLE analisis_calidad(
     CONSTRAINT pk_analisis_calidad
         PRIMARY KEY (idAnalisis),
 
-    CONSTRAINT fk_analisis_calidad_lote FOREIGN KEY (numeroLote) REFERENCES lote (numero)
+    CONSTRAINT fk_analisis_calidad_lote
+        FOREIGN KEY (numeroLote) REFERENCES lote (numero)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -291,7 +286,8 @@ CREATE TABLE vino(
     CONSTRAINT pk_vino
         PRIMARY KEY (codigoVino),
 
-    CONSTRAINT fk_vino_bodega FOREIGN KEY (cuitBodega) REFERENCES bodega (cuit)
+    CONSTRAINT fk_vino_bodega
+        FOREIGN KEY (cuitBodega) REFERENCES bodega (cuit)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -327,11 +323,13 @@ CREATE TABLE componen(
     CONSTRAINT pk_componen
         PRIMARY KEY (codigoVino, idCepa),
 
-    CONSTRAINT fk_componen_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_componen_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_componen_cepa FOREIGN KEY (idCepa) REFERENCES cepa (idCepa)
+    CONSTRAINT fk_componen_cepa
+        FOREIGN KEY (idCepa) REFERENCES cepa (idCepa)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -362,11 +360,13 @@ CREATE TABLE tienen(
     CONSTRAINT pk_tienen
         PRIMARY KEY (codigoVino, idMaridaje),
 
-    CONSTRAINT fk_tienen_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_tienen_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_tienen_maridaje FOREIGN KEY (idMaridaje) REFERENCES maridaje (idMaridaje)
+    CONSTRAINT fk_tienen_maridaje
+        FOREIGN KEY (idMaridaje) REFERENCES maridaje (idMaridaje)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT
 );
@@ -384,7 +384,8 @@ CREATE TABLE auditoria_precio(
     CONSTRAINT pk_auditoria_precio
         PRIMARY KEY (idAuditoria),
 
-    CONSTRAINT fk_auditoria_precio_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_auditoria_precio_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -415,7 +416,8 @@ CREATE TABLE cliente(
     CONSTRAINT pk_cliente
         PRIMARY KEY (idCliente),
 
-    CONSTRAINT fk_cliente_localidad FOREIGN KEY (idLocalidad) REFERENCES localidad (idLocalidad)
+    CONSTRAINT fk_cliente_localidad
+        FOREIGN KEY (idLocalidad) REFERENCES localidad (idLocalidad)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -473,7 +475,8 @@ CREATE TABLE socio_club(
     CONSTRAINT pk_socio_club
         PRIMARY KEY (idCliente),
 
-    CONSTRAINT fk_socio_club_cliente FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
+    CONSTRAINT fk_socio_club_cliente
+        FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT
 );
@@ -488,7 +491,8 @@ CREATE TABLE distribuidor(
     CONSTRAINT pk_distribuidor
         PRIMARY KEY (idCliente),
 
-    CONSTRAINT fk_distribuidor_cliente FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
+    CONSTRAINT fk_distribuidor_cliente
+        FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -508,7 +512,8 @@ CREATE TABLE exportador(
     CONSTRAINT pk_exportador
         PRIMARY KEY (idCliente),
 
-    CONSTRAINT fk_exportador_cliente FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
+    CONSTRAINT fk_exportador_cliente
+        FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -527,7 +532,8 @@ CREATE TABLE permisos(
     CONSTRAINT pk_permisos
         PRIMARY KEY (codigo),
 
-    CONSTRAINT fk_permisos_exportador FOREIGN KEY (idExportador) REFERENCES exportador (idCliente)
+    CONSTRAINT fk_permisos_exportador
+        FOREIGN KEY (idExportador) REFERENCES exportador (idCliente)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -549,11 +555,13 @@ CREATE TABLE comprobante(
     CONSTRAINT pk_comprobante
         PRIMARY KEY (numero),
 
-    CONSTRAINT fk_comprobante_cliente FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
+    CONSTRAINT fk_comprobante_cliente
+        FOREIGN KEY (idCliente) REFERENCES cliente (idCliente)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_comprobante_sala_venta FOREIGN KEY (idSalaVenta) REFERENCES sala_venta (idSalaVenta)
+    CONSTRAINT fk_comprobante_sala_venta
+        FOREIGN KEY (idSalaVenta) REFERENCES sala_venta (idSalaVenta)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -583,11 +591,13 @@ CREATE TABLE renglon_comprobante(
     CONSTRAINT pk_renglon_comprobante
         PRIMARY KEY (numeroComprobante, codigoVino),
 
-    CONSTRAINT fk_renglon_comprobante_comprobante FOREIGN KEY (numeroComprobante) REFERENCES comprobante (numero)
+    CONSTRAINT fk_renglon_comprobante_comprobante
+        FOREIGN KEY (numeroComprobante) REFERENCES comprobante (numero)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_renglon_comprobante_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_renglon_comprobante_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -645,11 +655,14 @@ CREATE TABLE alcanza(
     CONSTRAINT pk_alcanza
         PRIMARY KEY (codigoTransporte, idLocalidad),
 
-    CONSTRAINT fk_alcanza_transporte FOREIGN KEY (codigoTransporte) REFERENCES empresas_transporte (codigoTransporte)
+    CONSTRAINT fk_alcanza_transporte
+        FOREIGN KEY (codigoTransporte)
+        REFERENCES empresas_transporte (codigoTransporte)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_alcanza_localidad FOREIGN KEY (idLocalidad) REFERENCES localidad (idLocalidad)
+    CONSTRAINT fk_alcanza_localidad
+        FOREIGN KEY (idLocalidad) REFERENCES localidad (idLocalidad)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT
 );
@@ -676,11 +689,13 @@ CREATE TABLE almacena(
     CONSTRAINT pk_almacena
         PRIMARY KEY (codigoVino),
 
-    CONSTRAINT fk_almacena_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_almacena_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_almacena_deposito FOREIGN KEY (idDeposito) REFERENCES deposito (idDeposito)
+    CONSTRAINT fk_almacena_deposito
+        FOREIGN KEY (idDeposito) REFERENCES deposito (idDeposito)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -701,11 +716,13 @@ CREATE TABLE posee(
     CONSTRAINT pk_posee
         PRIMARY KEY (idSalaVenta, codigoVino),
 
-    CONSTRAINT fk_posee_sala_venta FOREIGN KEY (idSalaVenta) REFERENCES sala_venta (idSalaVenta)
+    CONSTRAINT fk_posee_sala_venta
+        FOREIGN KEY (idSalaVenta) REFERENCES sala_venta (idSalaVenta)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_posee_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_posee_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -726,15 +743,19 @@ CREATE TABLE ingresos(
     CONSTRAINT pk_ingresos
         PRIMARY KEY (codigoIngreso),
 
-    CONSTRAINT fk_ingresos_bodega FOREIGN KEY (cuitBodega) REFERENCES bodega (cuit)
+    CONSTRAINT fk_ingresos_bodega
+        FOREIGN KEY (cuitBodega) REFERENCES bodega (cuit)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
-    CONSTRAINT fk_ingresos_transporte FOREIGN KEY (codigoTransporte) REFERENCES empresas_transporte (codigoTransporte)
+    CONSTRAINT fk_ingresos_transporte
+        FOREIGN KEY (codigoTransporte)
+        REFERENCES empresas_transporte (codigoTransporte)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_ingresos_deposito FOREIGN KEY (idDeposito) REFERENCES deposito (idDeposito)
+    CONSTRAINT fk_ingresos_deposito
+        FOREIGN KEY (idDeposito) REFERENCES deposito (idDeposito)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -755,11 +776,13 @@ CREATE TABLE contiene(
     CONSTRAINT pk_contiene
         PRIMARY KEY (codigoIngreso, codigoVino),
 
-    CONSTRAINT fk_contiene_ingresos FOREIGN KEY (codigoIngreso) REFERENCES ingresos (codigoIngreso)
+    CONSTRAINT fk_contiene_ingresos
+        FOREIGN KEY (codigoIngreso) REFERENCES ingresos (codigoIngreso)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_contiene_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_contiene_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -778,7 +801,8 @@ CREATE TABLE transferencia(
     CONSTRAINT pk_transferencia
         PRIMARY KEY (numeroSolicitud),
 
-    CONSTRAINT fk_transferencia_sala_venta FOREIGN KEY (idSalaVenta) REFERENCES sala_venta (idSalaVenta)
+    CONSTRAINT fk_transferencia_sala_venta
+        FOREIGN KEY (idSalaVenta) REFERENCES sala_venta (idSalaVenta)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
@@ -796,11 +820,14 @@ CREATE TABLE incluye(
     CONSTRAINT pk_incluye
         PRIMARY KEY (numeroSolicitud, codigoVino),
 
-    CONSTRAINT fk_incluye_transferencia FOREIGN KEY (numeroSolicitud) REFERENCES transferencia (numeroSolicitud)
+    CONSTRAINT fk_incluye_transferencia
+        FOREIGN KEY (numeroSolicitud)
+        REFERENCES transferencia (numeroSolicitud)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
-    CONSTRAINT fk_incluye_vino FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
+    CONSTRAINT fk_incluye_vino
+        FOREIGN KEY (codigoVino) REFERENCES vino (codigoVino)
         ON DELETE RESTRICT
         ON UPDATE RESTRICT,
 
