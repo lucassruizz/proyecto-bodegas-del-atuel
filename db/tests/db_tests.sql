@@ -20,6 +20,7 @@ VALUES ('20111111111', 'Bodega de prueba', 'Ruta 143');
 INSERT INTO deposito (idDeposito) VALUES (1);
 
 INSERT INTO cepa (nombre, tipo) VALUES ('Malbec', 'tinta');
+INSERT INTO maridaje (nombre, temperatura) VALUES ('Carnes rojas', 17);
 
 INSERT INTO departamento (nombreDepartamento, provincia)
 VALUES ('San Rafael', 'Mendoza');
@@ -35,7 +36,7 @@ INSERT INTO vino (
 ) VALUES (1, 'Malbec joven', 750, 13, 'tinto', 2024, 1000, '20111111111');
 
 -- 2. PRUEBAS RN-01: Precio positivo y unicidad de vino.
--- Prueba de precio positivo. Debería fallar.
+-- Prueba de precio positivo. Error esperado: 23514 (CHECK).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -55,7 +56,7 @@ BEGIN
 END;
 $$;
 
--- Prueba de unicidad del vino (mismo nombre, añada y volumen). Debería fallar.
+-- Prueba de unicidad del vino (mismo nombre, añada y volumen). Error esperado: 23505 (UNIQUE).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -76,7 +77,7 @@ END;
 $$;
 
 -- 3. PRUEBAS RN-02: Encargado regional y localidad.
--- Prueba de una localidad que intenta tener un segundo encargado regional. Debería fallar.
+-- Prueba de una localidad que intenta tener un segundo encargado regional. Error esperado: 23505 (UNIQUE).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -95,15 +96,14 @@ BEGIN
 END;
 $$;
 
--- Prueba de existencia obligatoria de encargado por localidad (control diferido). Debería fallar.
+-- Prueba de existencia obligatoria de encargado por localidad (control diferido). Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
 BEGIN
-    INSERT INTO localidad (nombre, provincia, codigoPostal)
-    VALUES ('Malargue', 'Mendoza', '5613');
-
     BEGIN
+        INSERT INTO localidad (nombre, provincia, codigoPostal)
+        VALUES ('Malargue', 'Mendoza', '5613');
         SET CONSTRAINTS trg_localidad_encargado IMMEDIATE;
     EXCEPTION WHEN raise_exception THEN
         v_fallo := true;
@@ -113,13 +113,12 @@ BEGIN
         RAISE EXCEPTION 'La prueba RN-02 (existencia obligatoria de encargado) no falló';
     END IF;
 
-    DELETE FROM localidad WHERE nombre = 'Malargue';
     SET CONSTRAINTS ALL DEFERRED;
     RAISE NOTICE 'RN-02 OK: toda localidad debe tener un encargado regional';
 END;
 $$;
 
--- 4. PRUEBA RN-03: Un empleado debe tener sala asignada obligatoriamente.
+-- 4. PRUEBA RN-03: Sala obligatoria. Error esperado: 23502 (NOT NULL).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -138,10 +137,12 @@ BEGIN
 END;
 $$;
 
--- 5. PRUEBA RN-04: Misma parcela y campaña. Debería fallar.
+-- 5. PRUEBA RN-04: Misma parcela y campaña. Error esperado: 23505 (UNIQUE).
 INSERT INTO lote (
     numero, fechaCosecha, kilosCosechados, campania, idFinca, numeroParcela, cuitBodega
-) VALUES (1, CURRENT_DATE, 1000, 2025, 1, 1, '20111111111');
+) VALUES (1, DATE '2025-03-15', 1000, 2025, 1, 1, '20111111111');
+INSERT INTO analisis_calidad (fecha, gradoBrix, ph, acidezTotal, numeroLote)
+VALUES (DATE '2025-03-16', 23, 3.5, 6, 1);
 
 DO $$
 DECLARE
@@ -150,7 +151,7 @@ BEGIN
     BEGIN
         INSERT INTO lote (
             numero, fechaCosecha, kilosCosechados, campania, idFinca, numeroParcela, cuitBodega
-        ) VALUES (2, CURRENT_DATE, 900, 2025, 1, 1, '20111111111');
+        ) VALUES (2, DATE '2025-03-16', 900, 2025, 1, 1, '20111111111');
     EXCEPTION WHEN unique_violation THEN
         v_fallo := true;
     END;
@@ -165,11 +166,12 @@ $$;
 -- 6. PRUEBAS RN-05: Composición del vino igual a 100%.
 -- Composición válida al 100%. Debería funcionar.
 INSERT INTO componen (codigoVino, idCepa, porcentaje) VALUES (1, 1, 100);
+INSERT INTO tienen VALUES (1, 1);
 SET CONSTRAINTS trg_componen_porcentaje IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;
 DO $$ BEGIN RAISE NOTICE 'RN-05 OK: composición al 100%% aceptada'; END $$;
 
--- Composición que no suma 100%. Debería fallar.
+-- Composición que no suma 100%. Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -225,7 +227,7 @@ BEGIN
 END;
 $$;
 
--- Un cliente no puede pertenecer simultáneamente a dos subtipos.
+-- Un cliente no puede pertenecer simultáneamente a dos subtipos. Error esperado: P0001 (RN-06).
 DO $$
 DECLARE v_fallo boolean := false;
 BEGIN
@@ -244,7 +246,7 @@ BEGIN
 END;
 $$;
 
--- Cambiar el descuento después de asignar el subtipo debe fallar al validar la restricción diferida.
+-- Cambiar el descuento después de asignar el subtipo debe fallar al validar la restricción diferida. Error esperado: P0001 (RN-06).
 DO $$
 DECLARE v_fallo boolean := false;
 BEGIN
@@ -262,7 +264,7 @@ BEGIN
 END;
 $$;
 
--- Eliminar el subtipo tampoco puede dejar un cliente sin especialización.
+-- Eliminar el subtipo tampoco puede dejar un cliente sin especialización. Error esperado: P0001 (RN-06).
 DO $$
 DECLARE v_fallo boolean := false;
 BEGIN
@@ -280,7 +282,7 @@ BEGIN
 END;
 $$;
 
--- Descuento inicial incompatible con el subtipo: debe fallar al validar la restricción.
+-- Descuento inicial incompatible con el subtipo: debe fallar al validar la restricción. Error esperado: P0001 (RN-06).
 DO $$
 DECLARE v_id bigint; v_fallo boolean := false;
 BEGIN
@@ -303,7 +305,7 @@ BEGIN
 END;
 $$;
 
--- 8. PRUEBA RN-07: Vencimiento posterior a emisión en permisos. Debería fallar.
+-- 8. PRUEBA RN-07: Vencimiento posterior a emisión en permisos. Error esperado: 23514 (CHECK).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -328,7 +330,7 @@ INSERT INTO posee (idSalaVenta, codigoVino, cantidadStock) VALUES (1, 1, 2);
 INSERT INTO comprobante (numero, fecha, idCliente, idSalaVenta, subtotal, descuento, total)
 VALUES (1, CURRENT_DATE, 1, 1, 0, 0, 0);
 
--- Intento de vender más stock del disponible en INSERT (3 > 2). Debería fallar.
+-- Intento de vender más stock del disponible en INSERT (3 > 2). Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -363,7 +365,7 @@ BEGIN
 END;
 $$;
 
--- Intento de UPDATE de cantidad superior al stock disponible (pedir 5 cuando queda 1 en posee + 1 del renglón = 2 máx). Debería fallar.
+-- Intento de UPDATE de cantidad superior al stock disponible (pedir 5 cuando queda 1 en posee + 1 del renglón = 2 máx). Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -423,6 +425,7 @@ INSERT INTO vino (
     codigoVino, nombre, volumen, graduacionAlcoholica, tipo, anada, precio, cuitBodega
 ) VALUES (2, 'Cabernet de prueba', 750, 13, 'tinto', 2024, 1000, '20111111111');
 INSERT INTO componen (codigoVino, idCepa, porcentaje) VALUES (2, 1, 100);
+INSERT INTO tienen VALUES (2, 1);
 SET CONSTRAINTS trg_componen_porcentaje IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;
 INSERT INTO posee (idSalaVenta, codigoVino, cantidadStock) VALUES (1, 2, 2);
@@ -478,7 +481,7 @@ VALUES (1, 1, 10);
 
 UPDATE ingresos SET estado = 'terminado' WHERE codigoIngreso = 1;
 
--- RN-12: Intento de INSERT en ingreso ya terminado. Debería fallar.
+-- RN-12: Intento de INSERT en ingreso ya terminado. Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -497,7 +500,7 @@ BEGIN
 END;
 $$;
 
--- RN-12: Intento de UPDATE en ingreso ya terminado. Debería fallar.
+-- RN-12: Intento de UPDATE en ingreso ya terminado. Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -517,7 +520,7 @@ BEGIN
 END;
 $$;
 
--- RN-12: Intento de DELETE en ingreso ya terminado. Debería fallar.
+-- RN-12: Intento de DELETE en ingreso ya terminado. Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -581,7 +584,7 @@ UPDATE transferencia
    SET estado = 'terminado'
  WHERE numeroSolicitud = 3;
 
--- Intento de INSERT en transferencia terminada. Debería fallar.
+-- Intento de INSERT en transferencia terminada. Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -600,7 +603,7 @@ BEGIN
 END;
 $$;
 
--- Intento de UPDATE en transferencia terminada. Debería fallar.
+-- Intento de UPDATE en transferencia terminada. Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -620,7 +623,7 @@ BEGIN
 END;
 $$;
 
--- Intento de DELETE en transferencia terminada. Debería fallar.
+-- Intento de DELETE en transferencia terminada. Error esperado: P0001 (regla de negocio).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -640,7 +643,7 @@ END;
 $$;
 
 -- 11. PRUEBAS RN-14: Protección contra borrado por claves foráneas (RESTRICT).
--- Intento de borrar bodega con referencias. Debería fallar.
+-- Intento de borrar bodega con referencias. Error esperado: 23503 (clave foránea).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -658,7 +661,7 @@ BEGIN
 END;
 $$;
 
--- Intento de borrar vino con referencias (posee, comprobante, almacena). Debería fallar.
+-- Intento de borrar vino con referencias (posee, comprobante, almacena). Error esperado: 23503 (clave foránea).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -676,7 +679,7 @@ BEGIN
 END;
 $$;
 
--- Intento de borrar empresa de transporte con referencias (ingresos, alcanza). Debería fallar.
+-- Intento de borrar empresa de transporte con referencias (ingresos, alcanza). Error esperado: 23503 (clave foránea).
 DO $$
 DECLARE
     v_fallo boolean := false;
@@ -719,7 +722,7 @@ END $$;
 DO $$ DECLARE v_fallo boolean := false; BEGIN
     BEGIN
         INSERT INTO lote (numero, fechaCosecha, kilosCosechados, campania, idFinca, numeroParcela, cuitBodega)
-        VALUES (3, CURRENT_DATE, 0, 2026, 1, 1, '20111111111');
+        VALUES (3, DATE '2026-03-15', 0, 2026, 1, 1, '20111111111');
     EXCEPTION WHEN check_violation THEN v_fallo := true; END;
     IF NOT v_fallo THEN RAISE EXCEPTION 'RN-15: aceptó kilos cosechados cero'; END IF;
 END $$;
@@ -820,5 +823,125 @@ BEGIN
     RAISE NOTICE 'RN-13 OK: precio auditado automáticamente';
 END;
 $$;
+
+-- RN-05. Insertar la ficha sin cepas debe fallar con P0001 al validar el corte.
+DO $$
+BEGIN
+    BEGIN
+        INSERT INTO vino VALUES (90, 'Sin cepas', 750, 13, 'tinto', 2024, 100, '20111111111');
+        SET CONSTRAINTS trg_vino_corte IMMEDIATE;
+        RAISE EXCEPTION 'RN-05: se aceptó un vino sin cepas';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM NOT LIKE 'RN-05: los porcentajes%' THEN RAISE; END IF;
+    END;
+END;
+$$;
+
+-- Secciones 3.2 y 3.3. Quitar el último análisis o maridaje debe fallar con P0001.
+DO $$
+BEGIN
+    BEGIN
+        DELETE FROM analisis_calidad WHERE numeroLote = 1;
+        SET CONSTRAINTS trg_analisis_lote IMMEDIATE;
+        RAISE EXCEPTION 'Se aceptó un lote sin análisis';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> 'El lote 1 debe tener al menos un análisis de calidad' THEN RAISE; END IF;
+    END;
+    BEGIN
+        DELETE FROM tienen WHERE codigoVino = 1;
+        SET CONSTRAINTS trg_tienen_maridaje IMMEDIATE;
+        RAISE EXCEPTION 'Se aceptó un vino sin maridajes';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> 'El vino 1 debe tener al menos un maridaje' THEN RAISE; END IF;
+    END;
+END;
+$$;
+
+-- RN-08. Con bruto 100,05 el descuento es 10,01 y el neto queda en 90,04.
+INSERT INTO comprobante (numero, idCliente, idSalaVenta) VALUES (90, 2, 1);
+INSERT INTO renglon_comprobante VALUES (90, 1, 1, 100.05, 10, 0);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM comprobante WHERE numero = 90
+        AND (subtotal, descuento, total) = (100.05, 10.01, 90.04)
+    ) THEN
+        RAISE EXCEPTION 'RN-08: redondeo incorrecto';
+    END IF;
+END;
+$$;
+
+SET LOCAL ROLE bodega_api;
+-- RN-08. Escribir el total desde el rol de la API debe dar 42501.
+DO $$
+BEGIN
+    BEGIN
+        UPDATE comprobante SET total = 1 WHERE numero = 90;
+        RAISE EXCEPTION 'RN-08: el rol pudo editar el total';
+    EXCEPTION WHEN insufficient_privilege THEN
+        NULL;
+    END;
+END;
+$$;
+RESET ROLE;
+
+-- RN-10. Un UPDATE directo a procesado también tiene que mover el stock.
+INSERT INTO ingresos (codigoIngreso, cuitBodega, codigoTransporte, idDeposito)
+VALUES (90, '20111111111', 1, 1);
+INSERT INTO contiene VALUES (90, 1, 4);
+UPDATE ingresos SET estado = 'terminado' WHERE codigoIngreso = 90;
+SET LOCAL ROLE bodega_api;
+UPDATE ingresos SET estado = 'procesado' WHERE codigoIngreso = 90;
+RESET ROLE;
+DO $$
+BEGIN
+    IF (SELECT cantidadStock FROM almacena WHERE codigoVino = 1) IS DISTINCT FROM 12 THEN
+        RAISE EXCEPTION 'RN-10: se procesó el ingreso sin sumar stock';
+    END IF;
+END;
+$$;
+
+-- RN-11. P0001 por falta de stock en el segundo vino. Se revierte el primero.
+INSERT INTO transferencia (numeroSolicitud, idSalaVenta, fechaConfeccion)
+VALUES (90, 1, CURRENT_DATE - 1);
+DO $$
+BEGIN
+    IF (SELECT fechaConfeccion FROM transferencia WHERE numeroSolicitud = 90)
+       IS DISTINCT FROM CURRENT_DATE THEN
+        RAISE EXCEPTION 'RN-11: el alta no fijó la fecha actual';
+    END IF;
+    -- RN-11. Cambiar la fecha después del alta debe fallar con P0001.
+    BEGIN
+        UPDATE transferencia SET fechaConfeccion = CURRENT_DATE - 1 WHERE numeroSolicitud = 90;
+        RAISE EXCEPTION 'RN-11: se pudo cambiar la fecha de confección';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> 'La fecha de confección no se puede modificar' THEN RAISE; END IF;
+    END;
+END;
+$$;
+INSERT INTO incluye VALUES (90, 1, 1), (90, 2, 999);
+UPDATE transferencia SET estado = 'terminado' WHERE numeroSolicitud = 90;
+DO $$
+DECLARE
+    v_sala integer := (SELECT cantidadStock FROM posee WHERE idSalaVenta = 1 AND codigoVino = 1);
+BEGIN
+    BEGIN
+        CALL sp_procesar_transferencia(90);
+        RAISE EXCEPTION 'RN-11: se procesó una transferencia sin stock';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> 'Stock insuficiente para el vino 2' THEN RAISE; END IF;
+    END;
+
+    IF (SELECT estado FROM transferencia WHERE numeroSolicitud = 90) <> 'terminado'
+       OR (SELECT cantidadStock FROM almacena WHERE codigoVino = 1) IS DISTINCT FROM 12
+       OR (SELECT cantidadStock FROM posee WHERE idSalaVenta = 1 AND codigoVino = 1)
+           IS DISTINCT FROM v_sala THEN
+        RAISE EXCEPTION 'RN-11: la transferencia dejó cambios parciales';
+    END IF;
+END;
+$$;
+
+-- Hace pasar las validaciones diferidas antes de revertir los datos de prueba.
+SET CONSTRAINTS ALL IMMEDIATE;
 
 ROLLBACK;

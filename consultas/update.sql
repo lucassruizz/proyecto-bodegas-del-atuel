@@ -9,7 +9,7 @@ CREATE TEMP TABLE u1_tasas ON COMMIT DROP AS
 SELECT idCliente, fn_descuento_cliente(idCliente) AS tasa FROM cliente;
 CREATE TEMP VIEW u1_renglones AS
 SELECT r.numeroComprobante, r.codigoVino, t.tasa,
-       ROUND(r.cantidad * r.precioUnitario * (1 - t.tasa / 100.0), 2) AS neto,
+       r.cantidad * r.precioUnitario - ROUND(r.cantidad * r.precioUnitario * t.tasa / 100.0, 2) AS neto,
        r.descuento, r.subtotalRenglon
 FROM renglon_comprobante r
 JOIN comprobante c ON c.numero = r.numeroComprobante

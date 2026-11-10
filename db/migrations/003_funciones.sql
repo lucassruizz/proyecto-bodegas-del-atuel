@@ -1,7 +1,7 @@
 -- BODEGAS DEL ATUEL
 -- 003_funciones.sql
 
--- Calcula el total de un comprobante desde sus renglones.
+-- Suma los netos del comprobante p_numero. STABLE: lee sus renglones.
 CREATE OR REPLACE FUNCTION fn_total_comprobante(p_numero bigint)
 RETURNS numeric(12,2)
 LANGUAGE sql
@@ -15,7 +15,7 @@ AS $$
     WHERE numeroComprobante = p_numero;
 $$;
 
--- Devuelve el stock disponible de vino en la sala.
+-- Devuelve el stock del vino p_vino en la sala p_sala. STABLE: lee los saldos.
 CREATE OR REPLACE FUNCTION fn_stock_sala(p_sala bigint, p_vino bigint)
 RETURNS integer
 LANGUAGE sql
@@ -29,7 +29,8 @@ AS $$
     ), 0);
 $$;
 
--- Devuelve el descuento según el subtipo de cliente y valida especialización disjunta.
+-- Devuelve el descuento del cliente p_cliente según su único subtipo.
+-- STABLE: consulta las tablas de subtipos.
 CREATE OR REPLACE FUNCTION fn_descuento_cliente(p_cliente bigint)
 RETURNS numeric(5,2)
 LANGUAGE plpgsql
@@ -59,7 +60,8 @@ BEGIN
 END;
 $$;
 
--- Calcula la antigüedad laboral de un empleado en años.
+-- Devuelve los años cumplidos de antigüedad del empleado p_cuit.
+-- STABLE: lee la fecha de ingreso y usa CURRENT_DATE.
 CREATE OR REPLACE FUNCTION fn_antiguedad_anios(p_cuit dom_cuit)
 RETURNS integer
 LANGUAGE sql

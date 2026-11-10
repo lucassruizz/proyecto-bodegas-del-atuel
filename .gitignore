@@ -13,3 +13,5 @@ Thumbs.db
 .venv/
 __pycache__/
 /db/seed/reporte_carga.json
+
+/dump_completo.sql.gz

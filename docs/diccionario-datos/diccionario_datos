@@ -16,7 +16,7 @@ Las definiciones constituyen la especificación para el esquema físico en Postg
 - `dom_cuit` es un DOMAIN basado en `varchar(11)`, con validación de exactamente once dígitos: `VALUE ~ '^[0-9]{11}$'`. No incluye guiones. La obligatoriedad se declara en cada columna.
 - Los importes se expresan en pesos argentinos, con `numeric(12,2)`. Los porcentajes se expresan en puntos porcentuales: `10.00` representa un 10 %.
 - Las superficies se expresan en hectáreas; el volumen, en mililitros; los kilos cosechados, en kg; la acidez, en g/L; y la temperatura, en °C.
-- Las fechas sin hora usan `date`. La auditoría utiliza `timestamp without time zone` y registra la hora local de Argentina; la sesión de base de datos debe usar `America/Argentina/Buenos_Aires`.
+- Las fechas sin hora usan `date`. La auditoría utiliza `timestamp without time zone`. La hora guardada corresponde a la zona de la sesión PostgreSQL.
 - Los campos obligatorios de texto deben contener algún carácter distinto de espacios. Las cadenas vacías no sustituyen a NULL.
 - Salvo indicación expresa, no se asignan valores predeterminados a las columnas.
 
@@ -524,7 +524,7 @@ total = SUM(subtotalRenglon) = subtotal − descuento
 
 Se redondea el descuento de cada renglón a dos decimales antes de sumar. No se vuelve a aplicar el descuento sobre el total neto. Los cambios autorizados de renglones recalculan la cabecera dentro de la misma transacción.
 
-El precio unitario se toma del precio vigente de VINO al vender y queda guardado como dato histórico. El porcentaje aplicado se obtiene del cliente y también queda conservado. Los cambios posteriores de precio o de subtipo no alteran ventas anteriores.
+El precio unitario se toma del precio vigente de VINO al vender y queda guardado como dato histórico. El porcentaje aplicado se obtiene del cliente y queda guardado en el renglón. U1 es una operación explícita de recálculo sobre una base de prueba. Los cambios posteriores de precio o de subtipo no alteran ventas anteriores.
 
 ### 5.3. Redundancias controladas
 
@@ -534,7 +534,7 @@ Estas redundancias se documentan y se mantendrán mediante lógica de base de da
 
 ## 6. Reglas que requieren lógica adicional
 
-| Regla |                                Condición                                  |                          Mecanismo previsto en la etapa 2                             |
+| Regla |                                Condición                                  |                          Mecanismo                             |
 |-------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
 | RN-01 | Precio positivo y común a todas las salas                                 | Precio en VINO y CHECK                                                                |
 | RN-02 | Una localidad por sala y exactamente un encargado por localidad           | FK NOT NULL, UNIQUE sobre encargado.idLocalidad y control diferido de existencia      |
@@ -543,7 +543,7 @@ Estas redundancias se documentan y se mantendrán mediante lógica de base de da
 | RN-05 | Composición de cada vino igual a 100 %                                    | CHECK por fila y constraint trigger diferido                                          |
 | RN-06 | Descuento según subtipo                                                   | Función de descuento y control de coherencia con la jerarquía                         |
 | RN-07 | Vencimiento posterior a emisión                                           | FK al exportador y CHECK entre fechas                                                 |
-| RN-08 | Importes calculados desde los renglones                                   | Función de cálculo y triggers; protección de la escritura de importes                 |
+| RN-08 | Importes calculados desde los renglones                                   | Función de cálculo, triggers y permisos de escritura por columna                 |
 | RN-09 | No vender más que el stock de sala                                        | Validación y descuento transaccional con bloqueo de stock; CHECK de stock no negativo |
 | RN-10 | Procesar ingresos terminados una sola vez                                 | ENUM, trigger de estados y procedimiento transaccional                                |
 | RN-11 | Procesar transferencias terminadas con stock suficiente y fecha inmutable | ENUM, triggers de estado y fecha, procedimiento transaccional con bloqueo de stock    |
@@ -552,7 +552,7 @@ Estas redundancias se documentan y se mantendrán mediante lógica de base de da
 | RN-14 | Impedir borrado de vinos, bodegas y transportistas referenciados          | FK con ON DELETE RESTRICT                                                             |
 | RN-15 | Valores positivos y graduación entre 5 y 20                               | CHECK; los stocks admiten cero                                                        |
 
-Los ingresos y transferencias se crean en `en_confeccion` y solo permiten las transiciones `en_confeccion → terminado → procesado`. No se admiten retrocesos, saltos de estado ni altas directamente en terminado o procesado. Para pasar a terminado deben contener al menos un renglón. El paso a procesado se efectúa exclusivamente mediante el procedimiento correspondiente, junto con el movimiento de stock. Los documentos terminados y procesados no se eliminan ni admiten cambios de sus datos operativos; el único cambio posterior a terminado es su procesamiento autorizado.
+Los ingresos y transferencias se crean en `en_confeccion` y solo permiten las transiciones `en_confeccion → terminado → procesado`. No se admiten retrocesos, saltos de estado ni altas directamente en terminado o procesado. Para pasar a terminado deben contener al menos un renglón. El procedimiento pasa de terminado a procesado. El trigger aplica el movimiento de stock en esa misma sentencia, incluso si el cambio de estado se solicita directamente en SQL. Los documentos terminados y procesados no admiten cambios en sus datos operativos. Los renglones protegidos y las claves foráneas impiden borrar documentos que tienen detalle.
 
 El DEFAULT de fechaConfeccion no impide por sí solo cargar otra fecha: un trigger exige la fecha actual en el alta e impide modificarla. Del mismo modo, los DEFAULT y los CHECK individuales no sustituyen los controles transaccionales de stock ni la validación de transiciones.
 

@@ -3,7 +3,7 @@
 \echo I1
 -- I1. Dar cobertura a General Alvear con el transportista de menos envíos
 -- del último trimestre. LEFT JOIN incluye empresas con cero ingresos procesados.
--- La PK permite repetir el intento si el par ya existe.
+-- ON CONFLICT DO NOTHING evita duplicar la cobertura si el par ya existe.
 BEGIN;
 CREATE TEMP TABLE i1_elegido ON COMMIT DROP AS
 SELECT t.codigoTransporte, l.idLocalidad, t.envios

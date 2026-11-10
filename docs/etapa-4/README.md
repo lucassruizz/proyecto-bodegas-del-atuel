@@ -154,10 +154,12 @@ base que ya tiene los datos, ejecutar
 `psql -X -v ON_ERROR_STOP=1 -1 -f db/migrations/008_indices.sql` con el
 propietario y luego `ANALYZE`.
 
-## Prueba de compatibilidad con las etapas anteriores
+## Prueba histórica de compatibilidad
 
 Se ejecutó `db/tests/db_tests.sql` en dos bases limpias, una con las migraciones
 001–006 y otra con 001–006 y 008. Ambas alcanzaron las pruebas de ventas y
 fallaron en el mismo punto, al validar una composición pendiente del vino 20
 en RN-05. La falla se reproduce en la versión de etapa 2 por sí sola. La carga
 histórica de etapa 3 y el ensayo de rendimiento sí finalizaron correctamente.
+
+Para ejecutar la suite SQL actual se necesita una base vacía con las migraciones 001 a 011. La prueba de rendimiento anterior conserva su entorno de medición, separado de la suite de integridad.

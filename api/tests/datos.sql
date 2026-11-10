@@ -13,7 +13,7 @@ INSERT INTO vino VALUES
     (1, 'Malbec de prueba', 750, 13, 'tinto', 2024, 100, '20111111111'),
     (2, 'Chardonnay de prueba', 750, 12, 'blanco', 2025, 150, '20111111111');
 INSERT INTO componen VALUES (1, 1, 100), (2, 2, 100);
-INSERT INTO tienen VALUES (1, 1);
+INSERT INTO tienen VALUES (1, 1), (2, 1);
 INSERT INTO almacena VALUES (1, 1, 100), (2, 1, 100);
 INSERT INTO posee VALUES (1, 1, 10), (1, 2, 0);
 COMMIT;

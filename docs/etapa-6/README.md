@@ -29,20 +29,20 @@ La API conecta por TCP con PostgreSQL mediante psycopg y un pool de 1 a 8 conexi
 - Los IDs de vino, venta, ingreso y transferencia se envían en el alta, de acuerdo con el esquema existente. PostgreSQL genera el ID del cliente.
 - `PUT /vinos/{codigo}` reemplaza la ficha, la composición y los maridajes. Una venta, un saldo o un registro de auditoría pueden impedir la baja por sus claves foráneas.
 - El cliente incluye `tipo` con uno de tres valores. El distribuidor requiere `zona_cobertura` y `numero_habilitacion`, y el exportador, `pais_destino_principal`. Si hay permisos asociados al exportador, la clave foránea protege la baja o el cambio a otro subtipo.
-- El circuito de ingresos y transferencias es alta, renglones, terminar y procesar. La API bloquea la cabecera al insertar un renglón para que la inserción y un cambio de estado concurrente se resuelvan en orden.
+- El circuito de ingresos y transferencias es alta, renglones, terminar y procesar. El trigger de renglones bloquea la cabecera para que la edición y el cierre se resuelvan en orden. Al pasar a procesado, el trigger de estado aplica el movimiento de stock.
 - Los reportes corresponden a S1, S8, S6, S7 y S9. Para S6 se indica `?sala=1`. La trazabilidad S9 muestra bodega, composición, maridajes y stock según las relaciones que ya existen.
 
 ## Cómo se confirma una venta
 
 `POST /comprobantes` abre una transacción con `db.transaction()`. Psycopg envía `BEGIN` y confirma con `COMMIT` al salir normalmente. Si una sentencia o una restricción diferida falla, ejecuta `ROLLBACK` y el manejador traduce el SQLSTATE.
 
-La API inserta la cabecera con totales en cero y toma los precios de `vino`. Los triggers validan y bloquean el stock, aplican el descuento, actualizan el saldo y recalculan los totales. Una de las pruebas consigue insertar el primer renglón y falla por stock en el segundo. Comprueba que el comprobante desaparece y que se restaura el stock del primer vino.
+La API inserta la cabecera con los importes en cero por defecto y toma los precios de `vino`. Los triggers validan y bloquean el stock, aplican el descuento, actualizan el saldo y recalculan los totales. Una de las pruebas consigue insertar el primer renglón y falla por stock en el segundo. Comprueba que el comprobante desaparece y que se restaura el stock del primer vino.
 
 El alta y la edición de un vino agrupan la ficha y la composición en una transacción para que PostgreSQL verifique el 100 % al confirmar. Los cambios de clientes usan la función de descuento existente luego de guardar su subtipo. Para procesar ingresos y transferencias, la API ejecuta `CALL` sobre los procedimientos de la etapa 2.
 
 ## Permisos y errores
 
-La conexión usa `bodega_api`. El trigger de auditoría escribe como su propietario y registra `SESSION_USER`, que identifica al rol que abrió la conexión. La prueba de precios verifica que `bodega_api` carece de permiso de inserción directa en auditoría.
+La conexión usa `bodega_api`. Con la migración 011, ese rol lee los saldos y los importes calculados. Los triggers actualizan los importes y el stock. El trigger de auditoría escribe como su propietario y registra `SESSION_USER`, que identifica al rol que abrió la conexión. La prueba de precios verifica que `bodega_api` carece de permiso de inserción directa en auditoría.
 
 | SQLSTATE | HTTP | Caso |
 | --- | --- | --- |

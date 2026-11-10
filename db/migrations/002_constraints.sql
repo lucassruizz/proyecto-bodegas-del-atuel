@@ -1,6 +1,6 @@
 -- BODEGAS DEL ATUEL
 -- Etapa 2: restricciones declarativas adicionales.
--- Este archivo se ejecuta después de 001_esquema_corregido.sql.
+-- Este archivo se ejecuta después de 001_esquema.sql.
 
 -- RN-04: una parcela se cosecha, como máximo, una vez por campaña.
 ALTER TABLE lote

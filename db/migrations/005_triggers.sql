@@ -57,14 +57,14 @@ BEGIN
     END IF;
 
     NEW.descuento := v_descuento;
-    NEW.subtotalRenglon := ROUND(
-        NEW.cantidad * NEW.precioUnitario * (1 - NEW.descuento / 100.0), 2
-    );
+    NEW.subtotalRenglon := NEW.cantidad * NEW.precioUnitario
+        - ROUND(NEW.cantidad * NEW.precioUnitario * NEW.descuento / 100.0, 2);
     RETURN NEW;
 END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_renglon_comprobante_stock ON renglon_comprobante;
+-- RN-09. Valida el stock antes de guardar el renglón.
 CREATE TRIGGER trg_renglon_comprobante_stock
 BEFORE INSERT OR UPDATE ON renglon_comprobante
 FOR EACH ROW EXECUTE FUNCTION fn_validar_stock_venta();
@@ -148,6 +148,7 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_renglon_comprobante_actualizar ON renglon_comprobante;
+-- RN-08 y RN-09. Actualiza stock e importes cuando cambia un renglón.
 CREATE TRIGGER trg_renglon_comprobante_actualizar
 AFTER INSERT OR UPDATE OR DELETE ON renglon_comprobante
 FOR EACH ROW EXECUTE FUNCTION fn_actualizar_venta();
@@ -180,11 +181,13 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_ingresos_estado ON ingresos;
+-- RN-10. Controla el estado del ingreso.
 CREATE TRIGGER trg_ingresos_estado
 BEFORE INSERT OR UPDATE OF estado ON ingresos
 FOR EACH ROW EXECUTE FUNCTION fn_controlar_estado_documento();
 
 DROP TRIGGER IF EXISTS trg_transferencia_estado ON transferencia;
+-- RN-11. Controla el estado de la transferencia.
 CREATE TRIGGER trg_transferencia_estado
 BEFORE INSERT OR UPDATE OF estado ON transferencia
 FOR EACH ROW EXECUTE FUNCTION fn_controlar_estado_documento();
@@ -233,11 +236,13 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_contiene_bloqueo ON contiene;
+-- RN-12. Protege los renglones de ingresos.
 CREATE TRIGGER trg_contiene_bloqueo
 BEFORE INSERT OR UPDATE OR DELETE ON contiene
 FOR EACH ROW EXECUTE FUNCTION fn_bloquear_renglones_documento();
 
 DROP TRIGGER IF EXISTS trg_incluye_bloqueo ON incluye;
+-- RN-12. Protege los renglones de transferencias.
 CREATE TRIGGER trg_incluye_bloqueo
 BEFORE INSERT OR UPDATE OR DELETE ON incluye
 FOR EACH ROW EXECUTE FUNCTION fn_bloquear_renglones_documento();
@@ -259,6 +264,7 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_transferencia_fecha ON transferencia;
+-- RN-11. Fija la fecha de confección.
 CREATE TRIGGER trg_transferencia_fecha
 BEFORE INSERT OR UPDATE ON transferencia
 FOR EACH ROW EXECUTE FUNCTION fn_fecha_transferencia();
@@ -283,6 +289,7 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_vino_auditar_precio ON vino;
+-- RN-13. Registra los cambios de precio.
 CREATE TRIGGER trg_vino_auditar_precio
 AFTER UPDATE OF precio ON vino
 FOR EACH ROW EXECUTE FUNCTION fn_auditar_precio_vino();
@@ -332,6 +339,7 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_componen_porcentaje ON componen;
+-- RN-05. Valida el corte al cerrar la transacción.
 CREATE CONSTRAINT TRIGGER trg_componen_porcentaje
 AFTER INSERT OR UPDATE OR DELETE ON componen
 DEFERRABLE INITIALLY DEFERRED
@@ -362,12 +370,14 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_localidad_encargado ON localidad;
+-- RN-02. Exige un encargado al crear una localidad.
 CREATE CONSTRAINT TRIGGER trg_localidad_encargado
 AFTER INSERT ON localidad
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION fn_validar_encargado_localidad();
 
 DROP TRIGGER IF EXISTS trg_encargado_localidad_existencia ON encargado_regional;
+-- RN-02. Impide dejar una localidad sin encargado.
 CREATE CONSTRAINT TRIGGER trg_encargado_localidad_existencia
 AFTER UPDATE OR DELETE ON encargado_regional
 DEFERRABLE INITIALLY DEFERRED
@@ -447,24 +457,28 @@ $$;
 -- La comprobación diferida permite crear primero el cliente y luego su subtipo
 -- dentro de la misma transacción, pero impide confirmar estados inconsistentes.
 DROP TRIGGER IF EXISTS trg_cliente_subtipo_integridad ON cliente;
+-- RN-06. Verifica el descuento y el subtipo del cliente.
 CREATE CONSTRAINT TRIGGER trg_cliente_subtipo_integridad
 AFTER INSERT OR UPDATE ON cliente
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION fn_validar_integridad_subtipo_cliente();
 
 DROP TRIGGER IF EXISTS trg_socio_club_subtipo_integridad ON socio_club;
+-- RN-06. Controla cambios en socios.
 CREATE CONSTRAINT TRIGGER trg_socio_club_subtipo_integridad
 AFTER INSERT OR UPDATE OR DELETE ON socio_club
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION fn_validar_integridad_subtipo_cliente();
 
 DROP TRIGGER IF EXISTS trg_distribuidor_subtipo_integridad ON distribuidor;
+-- RN-06. Controla cambios en distribuidores.
 CREATE CONSTRAINT TRIGGER trg_distribuidor_subtipo_integridad
 AFTER INSERT OR UPDATE OR DELETE ON distribuidor
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION fn_validar_integridad_subtipo_cliente();
 
 DROP TRIGGER IF EXISTS trg_exportador_subtipo_integridad ON exportador;
+-- RN-06. Controla cambios en exportadores.
 CREATE CONSTRAINT TRIGGER trg_exportador_subtipo_integridad
 AFTER INSERT OR UPDATE OR DELETE ON exportador
 DEFERRABLE INITIALLY DEFERRED

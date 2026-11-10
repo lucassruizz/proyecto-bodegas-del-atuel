@@ -6,8 +6,7 @@ documentan la ejecución de la etapa 3.
 
 ## Ejecución (PowerShell)
 
-Usar Python 3.10 o superior y PostgreSQL 14 o superior. Crear una base de prueba
-vacía y ejecutar las migraciones 001 a 005 en orden. Ejecutar el cargador
+Usar Python 3.10 o superior y PostgreSQL 14 o superior. Preparar una base de prueba vacía con las migraciones aplicadas. Ejecutar el cargador
 como propietario de las tablas. No usar una base con datos del grupo: el script
 se detiene si encuentra cualquier tabla del proyecto con filas.
 
@@ -76,3 +75,15 @@ encargados, stock negativo y conciliación de ambos stocks con sus movimientos.
 Las filas huérfanas se impiden mediante FK activas durante toda la carga.
 Esta estrategia requiere propietario y debe usarse exclusivamente para preparar
 el dataset histórico en una base vacía, no como ruta de carga de producción.
+
+
+## Volcado de la carga
+
+Desde la raíz, con PostgreSQL de Compose en ejecución y después de cargar la base, se puede generar el archivo pedido. El volcado contiene los datos y el esquema de la base seleccionada.
+
+```sh
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip -c > dump_completo.sql.gz
+gzip -t dump_completo.sql.gz
+```
+
+Si la carga se hizo en otra base, indicá ese nombre en `pg_dump -d`. El volcado queda fuera de Git por su tamaño.

@@ -6,7 +6,7 @@ Se eligió una tabla CLIENTE con los datos comunes y una tabla para cada tipo: S
 
 Esto evita repetir los datos generales y permite guardar por separado los datos específicos. Como desventaja, algunas consultas necesitan combinar varias tablas.
 
-Cada cliente debe pertenecer a un único subtipo. Esta condición forma parte del modelo, aunque las claves del SQL actual no alcanzan para garantizarla.
+Cada cliente debe pertenecer a un único subtipo. Las claves enlazan cada subtipo con CLIENTE. Los triggers diferidos de 005 exigen que al confirmar la transacción exista un único subtipo y que coincida con el descuento.
 
 ## Elección de claves
 
@@ -32,7 +32,7 @@ En CLIENTE, descuento es el porcentaje vigente. En renglon_comprobante, es el po
 
 Se conservan los subtotales y totales pedidos, aunque puedan calcularse a partir de otros datos. También se mantiene el porcentaje en cada renglón. Estas repeticiones se explican en la justificación de normalización.
 
-Los valores calculados deben mantenerse desde la base de datos. El SQL actual define los campos y sus validaciones básicas, pero todavía no realiza esos cálculos automáticamente ni asigna el descuento según el subtipo.
+Los triggers calculan los importes al modificar los renglones y toman el descuento de la función del subtipo. El rol de la API crea la cabecera con importes en cero por defecto y solo puede leer los importes calculados.
 
 ## Acciones referenciales
 

@@ -208,9 +208,8 @@ def actualizar_descuento(db, codigo):
 
 def insertar_venta(db, venta):
     db.execute("""
-        INSERT INTO comprobante (numero, idcliente, idsalaventa, fecha,
-                                  subtotal, descuento, total)
-        VALUES (%s, %s, %s, COALESCE(%s, CURRENT_DATE), 0, 0, 0)
+        INSERT INTO comprobante (numero, idcliente, idsalaventa, fecha)
+        VALUES (%s, %s, %s, COALESCE(%s, CURRENT_DATE))
     """, (venta.numero, venta.id_cliente, venta.id_sala, venta.fecha))
 
 

@@ -159,7 +159,7 @@ def generar_datos_base(cursor, catalogos):
     # Cálculos derivados en SQL: misma fórmula de los triggers de etapa-2.
     cursor.execute("""
         UPDATE renglon_comprobante SET subtotalRenglon =
-          ROUND(cantidad * precioUnitario * (1 - descuento / 100.0), 2);
+          cantidad * precioUnitario - ROUND(cantidad * precioUnitario * descuento / 100.0, 2);
         UPDATE comprobante c SET subtotal=r.bruto, descuento=r.rebaja, total=r.neto
         FROM (SELECT numeroComprobante, SUM(cantidad*precioUnitario) bruto,
           SUM(ROUND(cantidad*precioUnitario*descuento/100.0,2)) rebaja,
@@ -196,7 +196,7 @@ def validar_carga(cursor):
         "composición": "SELECT count(*) FROM (SELECT v.codigoVino FROM vino v LEFT JOIN componen c USING(codigoVino) GROUP BY v.codigoVino HAVING COALESCE(SUM(porcentaje),0)<>100) x",
         "subtipos y descuentos": "SELECT count(*) FROM cliente c WHERE descuento<>fn_descuento_cliente(c.idCliente)",
         "totales": "SELECT count(*) FROM comprobante c JOIN (SELECT numeroComprobante, SUM(cantidad*precioUnitario) bruto,SUM(ROUND(cantidad*precioUnitario*descuento/100.0,2)) rebaja,SUM(subtotalRenglon) neto FROM renglon_comprobante GROUP BY numeroComprobante) r ON c.numero=r.numeroComprobante WHERE (c.subtotal,c.descuento,c.total) IS DISTINCT FROM (r.bruto,r.rebaja,r.neto)",
-        "renglones": "SELECT count(*) FROM renglon_comprobante r JOIN comprobante c ON c.numero=r.numeroComprobante JOIN cliente cl USING(idCliente) WHERE r.descuento<>cl.descuento OR r.subtotalRenglon<>ROUND(r.cantidad*r.precioUnitario*(1-r.descuento/100.0),2)",
+        "renglones": "SELECT count(*) FROM renglon_comprobante r JOIN comprobante c ON c.numero=r.numeroComprobante JOIN cliente cl USING(idCliente) WHERE r.descuento<>cl.descuento OR r.subtotalRenglon<>r.cantidad*r.precioUnitario-ROUND(r.cantidad*r.precioUnitario*r.descuento/100.0,2)",
         "fechas de venta": "SELECT count(*) FROM comprobante c JOIN cliente cl USING(idCliente) WHERE c.fecha<cl.fechaAlta OR c.fecha<DATE '2022-06-03' OR c.fecha>DATE '2026-11-07'",
         "saldo depósito": "SELECT count(*) FROM almacena a LEFT JOIN (SELECT codigoVino,SUM(cantidadBotellas) n FROM contiene JOIN ingresos USING(codigoIngreso) WHERE estado='procesado' GROUP BY codigoVino) e USING(codigoVino) LEFT JOIN (SELECT codigoVino,SUM(cantidad) n FROM incluye JOIN transferencia USING(numeroSolicitud) WHERE estado='procesado' GROUP BY codigoVino) t USING(codigoVino) WHERE a.cantidadStock<>COALESCE(e.n,0)-COALESCE(t.n,0)",
         "saldo salas": "SELECT count(*) FROM posee p LEFT JOIN (SELECT idSalaVenta,codigoVino,SUM(cantidad) n FROM incluye JOIN transferencia USING(numeroSolicitud) WHERE estado='procesado' GROUP BY idSalaVenta,codigoVino) t USING(idSalaVenta,codigoVino) LEFT JOIN (SELECT idSalaVenta,codigoVino,SUM(cantidad) n FROM renglon_comprobante r JOIN comprobante c ON c.numero=r.numeroComprobante GROUP BY idSalaVenta,codigoVino) v USING(idSalaVenta,codigoVino) WHERE p.cantidadStock<>COALESCE(t.n,0)-COALESCE(v.n,0)",

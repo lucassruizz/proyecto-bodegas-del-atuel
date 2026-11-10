@@ -55,7 +55,7 @@ Además, subtotalRenglon se calcula a partir de cantidad, precioUnitario y descu
 
 El precio unitario histórico debe conservarse porque puede diferir del precio actual del vino. El porcentaje aplicado también se mantiene para que cambios posteriores en la situación del cliente no alteren ventas anteriores.
 
-Estas excepciones se documentan como redundancias controladas: se conserva información repetida o calculable y se exige mantenerla coherente. El SQL actual todavía no garantiza todos los cálculos ni la correspondencia del descuento con el subtipo.
+Estas excepciones se documentan como redundancias controladas: se conserva información repetida o calculable y se exige mantenerla coherente. Los triggers recalculan los importes cuando cambian los renglones. La base valida el descuento del cliente según su subtipo al confirmar la transacción.
 
 ## Conclusión
 

@@ -14,16 +14,24 @@ Con los puertos del ejemplo, Swagger está en [localhost:8000/docs](http://local
 
 La base nueva arranca con el esquema vacío. Para probar con datos históricos, seguir la [guía de carga](../docs/etapa-3/README.md). Los reportes de mes y trimestre usan `CURRENT_DATE`, así que una carga histórica puede quedar fuera del período. Las pruebas usan datos sintéticos de fecha actual.
 
-### Volumen existente de la etapa 5
+### Volumen existente
 
-Docker ejecuta los scripts de inicialización al crear el volumen. Para agregar la etapa 6 sobre un volumen existente con 001–008 aplicadas, completar `.env` y ejecutar desde la raíz:
+Docker aplica las migraciones automáticamente al inicializar un volumen nuevo. Si el volumen ya tiene la etapa 6, aplicá 011 antes de reconstruir la API:
 
 ```sh
 docker compose up -d db
-docker compose exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /docker-entrypoint-initdb.d/009_compatibilidad_api.sql'
-docker compose exec -T db bash /docker-entrypoint-initdb.d/010_configurar_api.sh
+docker compose exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /docker-entrypoint-initdb.d/011_integridad.sql'
 docker compose up -d --build
 ```
+
+Si el volumen todavía está en la etapa 5 (001–008), primero aplicá 009 y ejecutá 010:
+
+```sh
+docker compose exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /docker-entrypoint-initdb.d/009_compatibilidad_api.sql'
+docker compose exec -T db bash /docker-entrypoint-initdb.d/010_configurar_api.sh
+```
+
+Luego aplicá 011 con el comando anterior. Cada migración se aplica una sola vez. Si 011 rechaza un departamento duplicado o una campaña que difiere del año de cosecha, corregí esos datos antes de volver a ejecutarla. La migración se revierte completa ante un error.
 
 Si se cambia `DB_API_PASSWORD` después de inicializar la base, volver a ejecutar el script 010 y recrear el servicio API con Compose para que lea el nuevo valor.
 

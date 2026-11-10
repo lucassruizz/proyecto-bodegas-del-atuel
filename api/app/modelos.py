@@ -27,7 +27,7 @@ class Vino(Entrada):
     precio: Decimal
     cuit_bodega: str
     composicion: list[Cepa] = Field(min_length=1)
-    maridajes: list[Id] = Field(default_factory=list)
+    maridajes: list[Id] = Field(min_length=1)
 
 
 class VinoNuevo(Vino):
