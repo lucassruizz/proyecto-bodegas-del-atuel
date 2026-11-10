@@ -1,5 +1,3 @@
-"""Integración HTTP con PostgreSQL real y el rol bodega_api."""
-
 import os
 import time
 from decimal import Decimal
