@@ -2,7 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-# Proyecto y volumen aislados del entorno de desarrollo.
 proyecto="bodegas-api-test-$$"
 export POSTGRES_DB=bodegas
 export POSTGRES_USER=postgres
