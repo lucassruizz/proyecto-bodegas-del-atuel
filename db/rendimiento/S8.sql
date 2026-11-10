@@ -1,4 +1,4 @@
--- Ventas por sala de los últimos tres meses al cierre del dataset.
+-- S8: Ventas por sala de los últimos tres meses al cierre del dataset.
 SELECT idSalaVenta, SUM(total) AS ventas
 FROM comprobante
 WHERE fecha >= DATE '2026-11-08' - INTERVAL '3 months'
