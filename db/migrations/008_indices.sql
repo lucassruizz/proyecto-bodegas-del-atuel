@@ -6,13 +6,10 @@ CREATE INDEX idx_comprobante_sala_fecha
 CREATE INDEX idx_comprobante_fecha_ventas
     ON public.comprobante (fecha) INCLUDE (idSalaVenta, total);
 
--- FK de comprobante a cliente: acelera la búsqueda de compras de un cliente
--- y la comprobación de referencias al actualizar o borrar un cliente.
 CREATE INDEX idx_comprobante_cliente
     ON public.comprobante (idCliente);
 
 -- S12: parte de los vinos de una bodega y busca sus comprobantes.
--- La PK existente comienza por numeroComprobante, no por codigoVino.
 CREATE INDEX idx_renglon_comprobante_vino
     ON public.renglon_comprobante (codigoVino, numeroComprobante);
 
