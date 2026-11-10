@@ -204,7 +204,6 @@ def crear_venta(venta: m.Venta, db: DB):
     """Registra la venta completa. Los triggers calculan importes y descuentan stock."""
     with db.transaction():
         q.insertar_venta(db, venta)
-        # Orden de bloqueo estable para ventas con varios vinos.
         for renglon in sorted(venta.renglones, key=lambda item: item.codigo_vino):
             existente(q.insertar_renglon_venta(db, venta.numero, renglon), "Vino")
         return q.detalle_venta(db, venta.numero)
