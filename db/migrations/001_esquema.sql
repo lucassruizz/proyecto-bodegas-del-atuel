@@ -1,6 +1,3 @@
--- BODEGAS DEL ATUEL
--- 001_esquema.sql
-
 -- 1. TIPOS ENUMERADOS
 
 CREATE TYPE estado_documento AS ENUM (
