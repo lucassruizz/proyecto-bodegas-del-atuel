@@ -1,9 +1,5 @@
--- Bodegas del Atuel · Etapa 5 · Pruebas de borrado con ROLLBACK.
-
 \echo D1
 -- D1. Borrar comprobantes de socios con más de cinco años de antigüedad.
--- El esquema tiene FK RESTRICT. Borrar los renglones primero permite que
--- los triggers devuelvan las botellas al stock de sala con el encabezado presente.
 BEGIN;
 CREATE TEMP TABLE d1_elegidos ON COMMIT DROP AS
 SELECT c.numero FROM comprobante c JOIN socio_club s USING (idCliente)
@@ -21,7 +17,6 @@ ROLLBACK;
 
 \echo D2
 -- D2. Eliminar cepas ausentes de vinos y parcelas.
--- Dos anti-joins excluyen las cepas referenciadas por cualquiera de las dos tablas.
 BEGIN;
 CREATE TEMP VIEW d2_elegidas AS
 SELECT * FROM cepa c
@@ -34,8 +29,6 @@ ROLLBACK;
 
 \echo D3
 -- D3. Eliminar empleados con menos de dos años en la sala dada de baja.
--- La baja es un supuesto del enunciado. Cambiar sala 2 y General Alvear
--- en la selección. Se conserva la sala por sus otras referencias.
 BEGIN;
 CREATE TEMP TABLE d3_elegidos ON COMMIT DROP AS
 SELECT e.cuit
@@ -52,8 +45,6 @@ ROLLBACK;
 
 \echo D4
 -- D4. Borrar socios sin compras dados de alta hace más de cinco años.
--- Fijar candidatos con NOT EXISTS. Eliminar el subtipo antes del cliente
--- por la FK RESTRICT. Validar el trigger diferido tras ambos borrados.
 BEGIN;
 CREATE TEMP TABLE d4_elegidos ON COMMIT DROP AS
 SELECT cl.idCliente
@@ -72,8 +63,6 @@ ROLLBACK;
 
 \echo D5
 -- D5. Borrar ingresos procesados con más de 365 días.
--- La FK es RESTRICT y RN-12 protege los renglones del documento procesado.
--- Intentar el borrado en un subbloque y capturar solo el rechazo RN-12.
 BEGIN;
 CREATE TEMP TABLE d5_elegidos ON COMMIT DROP AS
 SELECT codigoIngreso FROM ingresos WHERE estado = 'procesado' AND fecha < CURRENT_DATE - 365;
@@ -104,7 +93,6 @@ ROLLBACK;
 
 \echo D6
 -- D6. Borrar socios sin compras de una localidad específica.
--- Cambiar la localidad y provincia. El borrado en dos pasos respeta la FK.
 BEGIN;
 CREATE TEMP TABLE d6_elegidos ON COMMIT DROP AS
 SELECT cl.idCliente
