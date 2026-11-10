@@ -1,5 +1,4 @@
--- Clientes distintos por tipo en la sala 1 durante siete días.
--- Corte exclusivo: 2026-11-08 (día posterior al cierre del dataset).
+-- S3: Clientes distintos por tipo en la sala 1 durante siete días.
 WITH compradores AS (
     SELECT DISTINCT idCliente
     FROM comprobante
