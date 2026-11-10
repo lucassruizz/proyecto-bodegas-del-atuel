@@ -1,4 +1,4 @@
--- Salas empatadas en la menor cantidad de transferencias pendientes.
+-- S5: Salas empatadas en la menor cantidad de transferencias pendientes.
 WITH pendientes AS (
     SELECT idSalaVenta, COUNT(*) AS cantidad
     FROM transferencia
