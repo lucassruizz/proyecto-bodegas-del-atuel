@@ -23,7 +23,6 @@ def listar_vinos(db, tipo, cepa, bodega, anada, limite, offset):
 
 
 def detalle_vino(db, codigo):
-    # S9. Agregar composición y maridajes por separado evita multiplicar filas.
     return db.execute("""
         SELECT v.codigovino AS codigo, v.nombre, v.volumen, v.tipo, v.anada,
                v.graduacionalcoholica AS graduacion_alcoholica, v.precio,
@@ -103,7 +102,6 @@ def insertar_maridaje_vino(db, codigo, maridaje):
     )
 
 
-# SELECT compartido por el listado, el detalle y la respuesta de escritura.
 _CLIENTES = """
     SELECT c.idcliente AS id_cliente, c.nombre, c.apellido,
            c.razonsocial AS razon_social, c.tipodocumento AS tipo_documento,
@@ -133,8 +131,6 @@ def detalle_cliente(db, codigo):
 
 
 def insertar_cliente(db, cliente):
-    # Valor inicial admitido por CHECK. Se reemplaza usando la función de
-    # PostgreSQL una vez insertado el subtipo y antes de confirmar.
     return db.execute("""
         INSERT INTO cliente (nombre, apellido, razonsocial, tipodocumento,
                              numerodocumento, direccion, idlocalidad, descuento)
@@ -215,8 +211,6 @@ def insertar_venta(db, venta):
 
 
 def insertar_renglon_venta(db, numero, renglon):
-    # El precio se toma del catálogo. Los triggers calculan los importes
-    # definitivos y descuentan el stock en la misma transacción.
     return db.execute("""
         INSERT INTO renglon_comprobante
             (numerocomprobante, codigovino, cantidad, preciounitario,
@@ -342,7 +336,6 @@ def top_vinos(db, limite, offset):
 
 
 def vinos_sin_stock(db, sala, limite, offset):
-    # S6. Sin stock en la sala, con disponibilidad en el depósito.
     return db.execute("""
         SELECT v.codigovino AS codigo, v.nombre, a.cantidadstock AS stock_deposito
         FROM almacena a
@@ -355,7 +348,6 @@ def vinos_sin_stock(db, sala, limite, offset):
 
 
 def transportista_activo(db, limite, offset):
-    # S7. Devuelve todos los empates, con paginación.
     return db.execute("""
         WITH actividad AS (
             SELECT e.codigotransporte, e.razonsocial, COUNT(*) AS envios
@@ -371,7 +363,6 @@ def transportista_activo(db, limite, offset):
 
 
 def ventas_por_sala(db, limite, offset):
-    # S8. Trimestre móvil.
     return db.execute("""
         SELECT idsalaventa AS id_sala, SUM(total) AS ventas
         FROM comprobante
