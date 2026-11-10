@@ -1,9 +1,3 @@
-"""Carga histórica reproducible para las migraciones 001 a 005 de etapa-2.
-
-Python 3.10+. Instalar: pip install -r requirements.txt
-Configurar DB_NAME, DB_USER, DB_PASSWORD y opcionalmente DB_HOST/DB_PORT.
-Ejecutar sobre una base VACÍA ya migrada. Ver README_carga.md.
-"""
 from __future__ import annotations
 
 import csv
@@ -19,7 +13,7 @@ from psycopg import sql
 from faker import Faker
 
 SEMILLA = 2026
-FECHA_BASE = date(2026, 11, 7)  # Fija: no depende del día de ejecución.
+FECHA_BASE = date(2026, 11, 7)  
 RUTA_BASE = Path(__file__).resolve().parent
 RUTA_CATALOGOS = RUTA_BASE / "csv"
 TAMANO_LOTE = 2000
@@ -138,12 +132,10 @@ def generar_datos_base(cursor, catalogos):
            ((i, f"Transporte {i}", str(33000000000+i), f"contacto{i}@example.com", "2604000000", fake.address()) for i in range(1, 11)))
     copiar(cursor, "alcanza", "codigotransporte idlocalidad", ((i, l) for i in range(1, 11) for l in loc))
     cursor.execute("INSERT INTO deposito VALUES (1)")
-    # 600 ingresos, diez vinos de una misma bodega por ingreso.
     copiar(cursor, "ingresos", "codigoingreso fecha estado cuitbodega codigotransporte iddeposito",
            ((i, date(2022, 6, 2), "procesado", bodegas[(i-1) % 10], (i-1) % 10+1, 1) for i in range(1, 601)))
     copiar(cursor, "contiene", "codigoingreso codigovino cantidadbotellas",
-           ((i, ((i-1)//10 % 3)*100+(i-1) % 10+1+j*10, 10000) for i in range(1, 601) for j in range(10)))
-    # Cada sala recibe todos los vinos en 60 transferencias de 5 renglones.
+           ((i, ((i-1)//10 % 3)*100+(i-1) % 10+1+j*10, 10000) for i in range(1, 601) for j in range(10))).
     copiar(cursor, "transferencia", "numerosolicitud estado fechaconfeccion idsalaventa",
            ((s*60+k+1, "procesado", date(2022, 6, 3), sala) for s, sala in enumerate(salas) for k in range(60)))
     copiar(cursor, "incluye", "numerosolicitud codigovino cantidad",
@@ -152,11 +144,9 @@ def generar_datos_base(cursor, catalogos):
            ((i+1, date(2022, 6, 4)+timedelta(days=(i*1618)//150000), clientes[i % 20000], salas[i % 15], 0, 0, 0) for i in range(150000)))
     def renglones():
         for i in range(150000):
-            # 100.000 x 3 + 50.000 x 4 = 500.000; sin vino repetido.
             for v in rng.sample(range(1, 301), 4 if i < 50000 else 3):
                 yield i+1, v, rng.randint(1, 3), 5000+v*10, (10, 20, 30)[(i % 20000) % 3], 0
     copiar(cursor, "renglon_comprobante", "numerocomprobante codigovino cantidad preciounitario descuento subtotalrenglon", renglones())
-    # Cálculos derivados en SQL: misma fórmula de los triggers de etapa-2.
     cursor.execute("""
         UPDATE renglon_comprobante SET subtotalRenglon =
           ROUND(cantidad * precioUnitario * (1 - descuento / 100.0), 2);
@@ -206,8 +196,6 @@ def validar_carga(cursor):
     }
     for nombre, consulta in controles.items():
         exigir_cero(cursor, nombre, consulta)
-    # FK activas durante toda la carga: no hay filas huérfanas. Forzar también
-    # cualquier constraint diferida antes de confirmar.
     cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
 
 
@@ -243,16 +231,12 @@ def main():
     with conectar() as conexion:
         with conexion.cursor() as cursor:
             cursor.execute("SET LOCAL search_path TO public")
-            # Impide escrituras concurrentes. No se borra ni trunca ningún dato.
             cursor.execute(sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE").format(sql.SQL(",").join(map(sql.Identifier, TABLAS_A_CONTROLAR))))
             for tabla in TABLAS_A_CONTROLAR:
                 cursor.execute(sql.SQL("SELECT EXISTS(SELECT 1 FROM {})").format(sql.Identifier(tabla)))
                 if cursor.fetchone()[0]:
                     raise RuntimeError(f"La tabla {tabla} no está vacía. Usar otra base vacía ya migrada.")
             tiempos = comparar_inserciones(cursor)
-            # Sólo triggers de usuario; FK, CHECK y UNIQUE permanecen activos.
-            # Requiere propietario. ALTER TABLE es transaccional: un error restaura
-            # automáticamente su estado. No se usa session_replication_role.
             cursor.execute("""SELECT c.relname,t.tgname,t.tgenabled FROM pg_trigger t
               JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
               WHERE n.nspname='public' AND NOT t.tgisinternal AND c.relname=ANY(%s)""", (list(TABLAS_A_CONTROLAR),))
@@ -267,7 +251,6 @@ def main():
             conteos = informar_conteos(cursor)
             for tabla in TABLAS_A_CONTROLAR:
                 cursor.execute(sql.SQL("ALTER TABLE {} ENABLE TRIGGER USER").format(sql.Identifier(tabla)))
-            # Habilitar no reproduce eventos históricos: por eso se valida antes.
     reporte = dict(semilla=SEMILLA, fecha_base=str(FECHA_BASE), conteos=conteos,
                    comparacion_2000_filas_segundos=tiempos, segundos_totales=time.perf_counter()-inicio,
                    controles="OK; FK/CHECK/UNIQUE activos durante toda la carga")
