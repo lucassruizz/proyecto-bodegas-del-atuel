@@ -1,7 +1,6 @@
 BEGIN;
 
--- El rol de la API conserva solo lectura sobre auditoría. El trigger escribe
--- con los permisos de su dueño y registra el usuario real de la conexión.
+-- El rol de la API conserva solo lectura sobre auditoría. El trigger escribe con los permisos de su dueño y registra el usuario real de la conexión.
 CREATE OR REPLACE FUNCTION public.fn_auditar_precio_vino()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -22,8 +21,7 @@ BEGIN
 END;
 $$;
 
--- Un vino eliminado no necesita conservar composición. Para los vinos que
--- siguen existiendo se mantiene el control diferido del 100 %.
+-- Un vino eliminado no necesita conservar composición. 
 CREATE OR REPLACE FUNCTION public.fn_validar_porcentaje_corte()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -48,7 +46,6 @@ BEGIN
 
     IF TG_OP <> 'DELETE' THEN
         v_vino_new := NEW.codigoVino;
-        -- Si OLD y NEW refieren al mismo vino, ya se comprobó el estado final.
         IF TG_OP <> 'UPDATE' OR v_vino_new IS DISTINCT FROM v_vino_old THEN
             SELECT COALESCE(SUM(porcentaje), 0)
               INTO v_total
