@@ -1,4 +1,4 @@
--- Primera parte de S12: clientes que compraron todos los vinos de la bodega.
+-- S12: clientes que compraron todos los vinos de la bodega.
 -- Contar vinos distintos evita duplicar el aporte de las compras repetidas.
 WITH vinos_bodega AS (
     SELECT codigoVino
