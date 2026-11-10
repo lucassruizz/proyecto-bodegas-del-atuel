@@ -1,5 +1,4 @@
--- BODEGAS DEL ATUEL
--- 003_funciones.sql
+-- Funciones
 
 -- Calcula el total de un comprobante desde sus renglones.
 CREATE OR REPLACE FUNCTION fn_total_comprobante(p_numero bigint)
