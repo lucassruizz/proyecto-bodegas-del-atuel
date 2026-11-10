@@ -1,4 +1,4 @@
--- Segunda parte de S12: clientes sin compras de vino tinto.
+-- S12: clientes sin compras de vino tinto.
 SELECT cl.idCliente
 FROM cliente cl
 WHERE NOT EXISTS (
