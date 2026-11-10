@@ -1,5 +1,4 @@
--- BODEGAS DEL ATUEL
--- 005_triggers.sql
+-- Triggers
 
 -- RN-09: valida stock disponible en INSERT y UPDATE, contemplando la restitución
 -- lógica del renglón anterior cuando se modifica el vino o el comprobante.
