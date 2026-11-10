@@ -1,6 +1,3 @@
--- Bodegas del Atuel · Etapa 5 · Consultas de lectura.
--- Ejecutar con psql. Con -v 'plan=EXPLAIN (ANALYZE, BUFFERS)' se miden
--- las consultas reutilizadas de etapa 4 y las avanzadas S9–S12.
 \if :{?plan}
 \else
 \set plan ''
@@ -8,7 +5,6 @@
 
 \echo S1
 -- S1. Ranking de los 10 vinos con más botellas vendidas en toda la red.
--- Agrupar los renglones por vino antes de unir al catálogo.
 :plan
 WITH ventas AS (
     SELECT codigoVino, SUM(cantidad) AS botellas
@@ -22,7 +18,6 @@ LIMIT 10;
 
 \echo S2
 -- S2. Códigos y nombres de los vinos vendidos en todas las salas.
--- División por conteo: comparar salas distintas con el tamaño de la red.
 WITH salas_por_vino AS (
     SELECT r.codigoVino, COUNT(DISTINCT c.idSalaVenta) AS salas
     FROM renglon_comprobante r
@@ -37,7 +32,6 @@ ORDER BY v.codigoVino;
 
 \echo S3
 -- S3. Clientes de cada tipo que compraron en una sala en la última semana.
--- Cambiar idSalaVenta = 1 para otra sala. Contar compradores distintos.
 :plan
 WITH compradores AS (
     SELECT DISTINCT idCliente
@@ -55,7 +49,6 @@ LEFT JOIN exportador e USING (idCliente);
 
 \echo S4
 -- S4. Cinco salas que más botellas solicitaron de un vino en 15 días.
--- Cambiar codigoVino = 1 (Vino Atuel 1). Agrupar solicitudes por sala.
 SELECT t.idSalaVenta, SUM(i.cantidad) AS botellas_solicitadas
 FROM transferencia t
 JOIN incluye i USING (numeroSolicitud)
@@ -67,7 +60,6 @@ LIMIT 5;
 
 \echo S5
 -- S5. Salas con menor número de transferencias pendientes.
--- Conservar salas sin solicitudes, contar cero y mostrar todos los empates.
 :plan
 WITH pendientes AS (
     SELECT idSalaVenta, COUNT(*) AS cantidad
@@ -85,7 +77,6 @@ ORDER BY idSalaVenta;
 
 \echo S6
 -- S6. Vinos sin stock en una sala y con stock en el depósito central.
--- Cambiar s.idSalaVenta = 1. Una fila de stock ausente equivale a cero.
 SELECT v.codigoVino, v.nombre, a.cantidadStock AS stock_deposito
 FROM almacena a
 JOIN vino v USING (codigoVino)
@@ -96,7 +87,6 @@ ORDER BY v.codigoVino;
 
 \echo S7
 -- S7. Empresa de transporte con mayor actividad en el último mes.
--- Contar ingresos procesados. Si hay empate en el máximo, devolver todos.
 WITH actividad AS (
     SELECT e.codigoTransporte, e.razonSocial, COUNT(*) AS envios
     FROM ingresos i
@@ -113,7 +103,6 @@ ORDER BY codigoTransporte;
 
 \echo S8
 -- S8. Monto total de ventas por sala en el último trimestre, de mayor a menor.
--- Acotar un trimestre móvil y agrupar los comprobantes por sala.
 :plan
 SELECT idSalaVenta, SUM(total) AS ventas
 FROM comprobante
@@ -124,8 +113,6 @@ ORDER BY ventas DESC, idSalaVenta;
 
 \echo S9
 -- S9. Ficha de un vino con cepas, bodega, maridajes y stock total.
--- Cambiar v.codigoVino = 1. Agregar cepas y maridajes por separado evita
--- el producto entre ambos conjuntos. Usar la vista para el stock.
 :plan
 SELECT v.codigoVino, v.nombre, b.razonSocial AS bodega,
        COALESCE(c.cepas, '[]'::jsonb) AS cepas,
@@ -149,7 +136,6 @@ WHERE v.codigoVino = 1;
 
 \echo S10
 -- S10. Rendimiento por parcela y campaña y comparación con su finca.
--- CTE de kg/ha y subconsulta correlacionada de promedio por finca y campaña.
 :plan
 WITH rendimiento AS (
     SELECT p.idFinca, p.numeroParcela, l.campania,
@@ -170,7 +156,6 @@ ORDER BY r.idFinca, r.campania, r.numeroParcela;
 
 \echo S11a
 -- S11a. Ranking de vinos por botellas vendidas dentro de cada sala.
--- Agrupar primero por sala y vino. RANK conserva empates en cantidad.
 :plan
 WITH ventas AS (
     SELECT c.idSalaVenta, r.codigoVino, SUM(r.cantidad) AS botellas
@@ -185,7 +170,6 @@ ORDER BY ve.idSalaVenta, puesto, ve.codigoVino;
 
 \echo S11b
 -- S11b. Ventas acumuladas mensuales por sala en orden cronológico.
--- La vista da un monto por mes con ventas. La ventana suma desde el primer mes.
 :plan
 SELECT idSalaVenta, mes, total_vendido,
        SUM(total_vendido) OVER (
@@ -197,8 +181,6 @@ ORDER BY idSalaVenta, mes;
 
 \echo S12a
 -- S12a. Clientes que compraron todos los vinos de una bodega.
--- Cambiar el CUIT de la bodega. Materializar por cliente el conjunto de
--- vinos comprados de esa bodega. La división busca si queda algún vino faltante.
 :plan
 WITH bodega_elegida AS (
     SELECT cuit FROM bodega WHERE cuit = '30000000000'
@@ -222,7 +204,6 @@ ORDER BY cl.idCliente;
 
 \echo S12b
 -- S12b. Clientes que nunca compraron ningún vino tinto.
--- Anti-join con NOT EXISTS. Incluye clientes sin compras.
 :plan
 SELECT cl.idCliente
 FROM cliente cl
