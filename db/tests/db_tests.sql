@@ -1,13 +1,10 @@
--- BODEGAS DEL ATUEL
--- db_tests.sql
-
 BEGIN;
 
 -- 1. Datos base para las pruebas.
 INSERT INTO localidad (nombre, provincia, codigoPostal)
 VALUES ('San Rafael', 'Mendoza', '5600');
 
--- Encargado para cumplir con RN-02 (cada localidad tiene un encargado)
+-- Encargado para cumplir con RN-02
 INSERT INTO encargado_regional (datosEncargado, idLocalidad)
 VALUES ('Encargado principal', 1);
 
