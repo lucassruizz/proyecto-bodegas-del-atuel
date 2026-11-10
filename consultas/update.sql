@@ -1,9 +1,5 @@
--- Bodegas del Atuel · Etapa 5 · Pruebas de modificación con ROLLBACK.
-
 \echo U1
 -- U1. Recalcular el total de todos los comprobantes con el descuento por cliente.
--- Obtener la tasa por subtipo una vez por cliente y conservar el precio de
--- cada renglón histórico. Corregir los renglones divergentes antes del encabezado.
 BEGIN;
 CREATE TEMP TABLE u1_tasas ON COMMIT DROP AS
 SELECT idCliente, fn_descuento_cliente(idCliente) AS tasa FROM cliente;
@@ -48,7 +44,6 @@ ROLLBACK;
 
 \echo U2
 -- U2. Aumentar 20 % el salario de empleados con más de cinco años.
--- Comparar con el aniversario exacto y verificar la suma de los salarios.
 BEGIN;
 CREATE TEMP VIEW u2_elegibles AS
 SELECT * FROM empleado WHERE fechaIngresoLaboral < CURRENT_DATE - INTERVAL '5 years';
@@ -59,7 +54,6 @@ ROLLBACK;
 
 \echo U3
 -- U3. Incrementar 13 % el precio de los vinos de una bodega.
--- Cambiar el CUIT de la vista temporal. El trigger registra cada precio nuevo.
 BEGIN;
 CREATE TEMP VIEW u3_vinos AS
 SELECT * FROM vino WHERE cuitBodega = '30000000000';
@@ -74,7 +68,6 @@ ROLLBACK;
 
 \echo U4
 -- U4. Cambiar lunes por miércoles y viceversa en una sentencia.
--- CASE intercambia ambos valores y WHERE conserva los demás días.
 BEGIN;
 SELECT 'antes' AS fase, idSalaVenta, diaCierreSemanal FROM sala_venta ORDER BY idSalaVenta;
 UPDATE sala_venta
@@ -85,7 +78,6 @@ ROLLBACK;
 
 \echo U5
 -- U5. Reducir 15 % el precio de los diez vinos menos vendidos en toda la red.
--- Incluir vinos sin ventas y desempatar por código.
 BEGIN;
 CREATE TEMP TABLE u5_elegidos ON COMMIT DROP AS
 SELECT v.codigoVino, COALESCE(SUM(r.cantidad), 0) AS botellas
@@ -105,8 +97,6 @@ ROLLBACK;
 
 \echo U6
 -- U6. Subir al 35 % el descuento de exportadores con más de tres permisos.
--- RN-06, el CHECK y la función de descuento vigentes exigen 30 %. Ejecutar
--- la sentencia y capturar exclusivamente el rechazo esperado del CHECK.
 BEGIN;
 CREATE TEMP VIEW u6_elegibles AS
 SELECT e.idCliente
