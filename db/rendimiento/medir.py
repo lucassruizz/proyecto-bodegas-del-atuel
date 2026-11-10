@@ -1,5 +1,3 @@
-"""Ejecuta la etapa 4 sobre una base de pruebas recién cargada."""
-
 import argparse
 import json
 import statistics
@@ -91,8 +89,6 @@ def main():
         if adicionales:
             raise RuntimeError(f"La medición inicial exige solo índices de PK y UNIQUE: {adicionales}")
 
-        # VACUUM debe ejecutarse fuera de la transacción. Se hace en el mismo
-        # estado de carga que ambas rondas, para igualar el mapa de visibilidad.
         conn.commit()
         conn.autocommit = True
         cursor.execute("VACUUM (ANALYZE) public.comprobante, public.renglon_comprobante")
