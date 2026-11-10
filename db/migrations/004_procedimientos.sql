@@ -1,4 +1,3 @@
--- BODEGAS DEL ATUEL
 -- Procedimientos que procesan documentos terminados.
 
 -- RN-10: incorpora al depósito el contenido de un ingreso terminado.
