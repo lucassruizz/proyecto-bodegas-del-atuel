@@ -1,9 +1,5 @@
--- Bodegas del Atuel · Etapa 5 · Pruebas de inserción con ROLLBACK.
-
 \echo I1
--- I1. Dar cobertura a General Alvear con el transportista de menos envíos
--- del último trimestre. LEFT JOIN incluye empresas con cero ingresos procesados.
--- La PK permite repetir el intento si el par ya existe.
+-- I1. Dar cobertura a General Alvear con el transportista de menos envíos del último trimestre. 
 BEGIN;
 CREATE TEMP TABLE i1_elegido ON COMMIT DROP AS
 SELECT t.codigoTransporte, l.idLocalidad, t.envios
@@ -31,8 +27,6 @@ ROLLBACK;
 
 \echo I2
 -- I2. Crear «cordero al disco» si hay tintos de 14° o más y asociarlos.
--- Reutilizar el maridaje si existe. El esquema no tiene UNIQUE por nombre:
--- bloquear escrituras concurrentes sobre el catálogo al buscar o crear el nombre.
 BEGIN;
 LOCK TABLE maridaje IN SHARE ROW EXCLUSIVE MODE;
 CREATE TEMP VIEW i2_vinos AS
@@ -62,8 +56,6 @@ ROLLBACK;
 
 \echo I3
 -- I3. Crear un comprobante en la sala 1, con tres renglones, para el cliente 1.
--- Cambiar el número de prueba, cliente, sala, vinos y cantidades. La función
--- de descuento y los triggers calculan los importes y actualizan el stock.
 BEGIN;
 SELECT 'antes' AS fase, COUNT(*) AS comprobantes FROM comprobante WHERE numero = 900001;
 SELECT 'antes' AS fase, codigoVino, fn_stock_sala(1, codigoVino) AS stock
@@ -88,7 +80,6 @@ ROLLBACK;
 
 \echo I4
 -- I4. Insertar una nueva bodega. Cambiar CUIT y demás datos del VALUES.
--- La PK rechaza un CUIT duplicado y el dominio valida el formato.
 BEGIN;
 SELECT 'antes' AS fase, COUNT(*) AS bodegas FROM bodega WHERE cuit = '30999999999';
 INSERT INTO bodega (cuit, razonSocial, domicilio)
@@ -98,7 +89,6 @@ ROLLBACK;
 
 \echo I5
 -- I5. Insertar una nueva sala de venta en General Alvear.
--- Buscar la localidad del catálogo. RETURNING entrega el ID generado.
 BEGIN;
 CREATE TEMP VIEW i5_control AS
 SELECT COUNT(*) AS salas
@@ -115,8 +105,6 @@ ROLLBACK;
 
 \echo I6
 -- I6. Crear un ingreso en confección de 120 botellas de un vino dado.
--- Cambiar los códigos 900001 (ingreso), 1 (vino y transporte) y el CUIT
--- de la bodega. El JOIN comprueba que la bodega elegida elabora ese vino.
 BEGIN;
 CREATE TEMP VIEW i6_control AS
 SELECT COUNT(DISTINCT i.codigoIngreso) AS ingresos,
