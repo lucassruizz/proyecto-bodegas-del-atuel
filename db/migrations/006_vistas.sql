@@ -1,5 +1,4 @@
--- BODEGAS DEL ATUEL
--- 006_vistas.sql
+-- Vistas
 
 -- Stock total por vino, sumando depósito y salas.
 CREATE OR REPLACE VIEW vw_stock_total_vino AS
