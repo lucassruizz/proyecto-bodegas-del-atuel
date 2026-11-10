@@ -1,4 +1,3 @@
--- Catálogos y saldos pequeños para una base de pruebas recién inicializada.
 BEGIN;
 INSERT INTO localidad (nombre, provincia, codigopostal) VALUES ('San Rafael', 'Mendoza', '5600');
 INSERT INTO encargado_regional (datosencargado, idlocalidad) VALUES ('Encargado de prueba', 1);
